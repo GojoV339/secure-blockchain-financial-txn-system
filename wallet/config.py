@@ -21,19 +21,14 @@ from dotenv import load_dotenv
 _PROJECT_ROOT: Path = Path(__file__).resolve().parent.parent
 load_dotenv(_PROJECT_ROOT / ".env")
 
-# ---------------------------------------------------------------------------
+
 # Dataset configuration
-# ---------------------------------------------------------------------------
 DATASET_PATH: Path = _PROJECT_ROOT / os.getenv("DATASET_PATH", "datasets/Eth_Txs.csv")
 
-# ---------------------------------------------------------------------------
 # Keystore configuration
-# ---------------------------------------------------------------------------
 KEYSTORE_PATH: Path = _PROJECT_ROOT / os.getenv("KEYSTORE_PATH", "keystore")
 
-# ---------------------------------------------------------------------------
 # Encryption passphrase — loaded on demand, never cached in a global
-# ---------------------------------------------------------------------------
 
 
 def get_encryption_passphrase() -> str:
@@ -60,9 +55,7 @@ def get_encryption_passphrase() -> str:
     return passphrase
 
 
-# ---------------------------------------------------------------------------
 # Logging configuration
-# ---------------------------------------------------------------------------
 LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
 
 
