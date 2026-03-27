@@ -56,16 +56,70 @@ This project focuses on the design and implementation of a secure decentralized 
 
 ---
 
-### Phase 2 — Wallet Identity Module
+### Phase 2 — Wallet Identity Module ✅
 > Week 1 · Day 3 · Covers: CO1, CO3
 
-- Load `From` and `To` columns from dataset — each unique address becomes a **simulated user**
-- Assign **public/private key pairs** to each wallet using Python's `cryptography` library
-  - Public key = user identity (Unit 1 concept: *Keys as Identity*)
-- Implement **digital signature function**
-  - `Sign(tx_data, private_key)` — hashes and signs transaction data
-- Implement **signature verification**
-  - `Verify(signature, public_key)` — confirms sender authenticity before processing
+**Status:** Complete · 55 tests passing · [SECURITY.md](SECURITY.md) for design decisions
+
+#### Module Structure
+
+```
+wallet/
+├── __init__.py          # Package exports
+├── config.py            # Env-based configuration (no hardcoded secrets)
+├── exceptions.py        # Custom exception hierarchy
+├── address_loader.py    # CSV address extraction + Ethereum format validation
+├── key_manager.py       # ECDSA key generation + encrypted persistence
+└── signer.py            # Digital signature sign/verify with security protections
+```
+
+#### Features Implemented
+
+| Feature | Implementation |
+|---|---|
+| Address loading | Extracts unique `From`/`To` addresses from CSV, filters non-hex labels |
+| Address validation | Regex-based `0x` + 40 hex char check (EIP-55 compatible) |
+| Key generation | ECDSA on secp256k1 (Ethereum-native curve) |
+| Key encryption | AES-256-CBC via PBKDF2-HMAC (`BestAvailableEncryption`) |
+| File permissions | Private keys written with `0o600` (owner-only) |
+| Digital signatures | ECDSA-SHA256 with canonical JSON serialisation |
+| Replay protection | UUID4 nonce embedded in signed message |
+| Malleability protection | Low-S normalisation (BIP-62 / Ethereum convention) |
+
+#### Usage
+
+```python
+from wallet.address_loader import load_addresses
+from wallet.key_manager import generate_key_pair, save_keys
+from wallet.signer import sign_transaction, verify_signature, create_nonce
+
+# Load addresses from dataset
+addresses = load_addresses()
+
+# Generate and save keys for an address
+private_key, public_key = generate_key_pair()
+save_keys("0xabc...", private_key, public_key, passphrase="...")
+
+# Sign a transaction
+nonce = create_nonce()
+signature = sign_transaction(tx_data, private_key, nonce)
+
+# Verify the signature
+is_valid = verify_signature(signature, public_key, tx_data, nonce)
+```
+
+#### Running Tests
+
+```bash
+# Full test suite with coverage
+pytest tests/ -v --cov=wallet --cov-report=term-missing --cov-fail-under=80
+
+# Lint check
+ruff check wallet/ tests/
+
+# Security scan
+bandit -r wallet/ -ll
+```
 
 ---
 
