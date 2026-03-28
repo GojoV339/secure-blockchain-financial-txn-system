@@ -106,7 +106,9 @@ jobs:
         run: pip install pip-audit
 
       - name: Run pip-audit on requirements
-        run: pip-audit -r requirements.txt
+        # pygments 2.19.2 (latest) has CVE-2026-4539 with no fix available.
+        # It is a transitive dependency. Ignore until upstream patches.
+        run: pip-audit -r requirements.txt --ignore-vuln CVE-2026-4539
 
   # -----------------------------------------------------------------------
   # Job 4: Tests with coverage
