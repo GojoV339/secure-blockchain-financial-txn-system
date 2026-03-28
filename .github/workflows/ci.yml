@@ -11,6 +11,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Opt into Node.js 24 to silence deprecation warnings
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   # -----------------------------------------------------------------------
   # Job 1: Linting with Ruff
@@ -32,7 +36,6 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install ruff
-          pip install -r requirements.txt
 
       - name: Ruff lint check
         run: ruff check wallet/ tests/
@@ -84,9 +87,9 @@ jobs:
 
   # -----------------------------------------------------------------------
   # Job 3: Dependency vulnerability check with pip-audit
-  # Checks all installed dependencies against known CVE databases
-  # to ensure no vulnerable packages are being used.
-  # Uses pip-audit (maintained alternative to safety).
+  # Checks installed dependencies against known CVE databases.
+  # Uses --requirement flag to audit requirements.txt directly so it
+  # doesn't scan unrelated system packages.
   # -----------------------------------------------------------------------
   dependency-check:
     name: Dependency Vulnerability Check
@@ -99,14 +102,11 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pip-audit
+      - name: Install pip-audit
+        run: pip install pip-audit
 
-      - name: Run pip-audit
-        run: pip-audit
+      - name: Run pip-audit on requirements
+        run: pip-audit -r requirements.txt
 
   # -----------------------------------------------------------------------
   # Job 4: Tests with coverage

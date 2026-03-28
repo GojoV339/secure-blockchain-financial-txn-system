@@ -25,9 +25,7 @@ logger = configure_logging(__name__)
 
 # Compiled regex for Ethereum address validation (case-insensitive hex)
 # Matches: 0x followed by exactly 40 hexadecimal characters
-_ETH_ADDRESS_PATTERN: re.Pattern[str] = re.compile(
-    r"^0x[0-9a-fA-F]{40}$"
-)
+_ETH_ADDRESS_PATTERN: re.Pattern[str] = re.compile(r"^0x[0-9a-fA-F]{40}$")
 
 # Required columns in the transaction dataset
 _REQUIRED_COLUMNS: frozenset[str] = frozenset({"From", "To"})
@@ -99,9 +97,7 @@ def load_addresses(
     resolved_path: Path = Path(csv_path) if csv_path else DATASET_PATH
 
     if not resolved_path.exists():
-        raise DatasetLoadError(
-            f"Dataset file not found: {resolved_path}"
-        )
+        raise DatasetLoadError(f"Dataset file not found: {resolved_path}")
 
     try:
         dataframe: pd.DataFrame = pd.read_csv(
@@ -114,14 +110,10 @@ def load_addresses(
             f"Dataset is missing required columns {_REQUIRED_COLUMNS}: {exc}"
         ) from exc
     except pd.errors.EmptyDataError as exc:
-        raise DatasetLoadError(
-            f"Dataset file is empty: {resolved_path}"
-        ) from exc
+        raise DatasetLoadError(f"Dataset file is empty: {resolved_path}") from exc
 
     if dataframe.empty:
-        raise DatasetLoadError(
-            f"Dataset contains no rows: {resolved_path}"
-        )
+        raise DatasetLoadError(f"Dataset contains no rows: {resolved_path}")
 
     # Collect all raw address candidates from both columns
     from_addresses: pd.Series = dataframe["From"].dropna()
@@ -129,9 +121,7 @@ def load_addresses(
     raw_candidates: set[str] = set(from_addresses) | set(to_addresses)
 
     total_candidates: int = len(raw_candidates)
-    logger.info(
-        "Found %d unique address candidates in dataset", total_candidates
-    )
+    logger.info("Found %d unique address candidates in dataset", total_candidates)
 
     # Validate and filter
     valid_addresses: set[str] = set()
@@ -143,9 +133,7 @@ def load_addresses(
             valid_addresses.add(candidate.lower())
         else:
             filtered_count += 1
-            logger.warning(
-                "Filtered non-address label: '%s'", candidate
-            )
+            logger.warning("Filtered non-address label: '%s'", candidate)
 
     logger.info(
         "Address loading complete: %d valid, %d filtered out of %d total",

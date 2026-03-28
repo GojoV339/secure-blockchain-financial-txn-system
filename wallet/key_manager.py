@@ -73,9 +73,7 @@ def generate_key_pair() -> tuple[ec.EllipticCurvePrivateKey, ec.EllipticCurvePub
         logger.debug("Generated new ECDSA key pair on secp256k1")
         return private_key, public_key
     except Exception as exc:
-        raise KeyGenerationError(
-            f"Failed to generate ECDSA key pair: {exc}"
-        ) from exc
+        raise KeyGenerationError(f"Failed to generate ECDSA key pair: {exc}") from exc
 
 
 # Serialisation helpers
@@ -111,9 +109,7 @@ def serialize_private_key(
             ),
         )
     except Exception as exc:
-        raise KeyStorageError(
-            f"Failed to serialise private key: {exc}"
-        ) from exc
+        raise KeyStorageError(f"Failed to serialise private key: {exc}") from exc
 
 
 def serialize_public_key(public_key: ec.EllipticCurvePublicKey) -> bytes:
@@ -136,9 +132,7 @@ def serialize_public_key(public_key: ec.EllipticCurvePublicKey) -> bytes:
             format=serialization.PublicFormat.SubjectPublicKeyInfo,
         )
     except Exception as exc:
-        raise KeyStorageError(
-            f"Failed to serialise public key: {exc}"
-        ) from exc
+        raise KeyStorageError(f"Failed to serialise public key: {exc}") from exc
 
 
 # Persistence
@@ -206,9 +200,7 @@ def save_keys(
         # Restrict permissions: owner read-only (POSIX)
         os.chmod(private_key_path, 0o600)
     except OSError as exc:
-        raise KeyStorageError(
-            f"Failed to write private key file: {exc}"
-        ) from exc
+        raise KeyStorageError(f"Failed to write private key file: {exc}") from exc
 
     # --- Public key (unencrypted) ---
     public_key_path: Path = target_dir / f"{filename_base}{_PUBLIC_KEY_SUFFIX}"
@@ -216,9 +208,7 @@ def save_keys(
     try:
         public_key_path.write_bytes(public_pem)
     except OSError as exc:
-        raise KeyStorageError(
-            f"Failed to write public key file: {exc}"
-        ) from exc
+        raise KeyStorageError(f"Failed to write public key file: {exc}") from exc
 
     logger.info("Keys saved for address %s", address)
 
@@ -258,8 +248,7 @@ def load_private_key(
 
     if not private_key_path.exists():
         raise KeyStorageError(
-            f"Private key file not found for address {address}: "
-            f"{private_key_path}"
+            f"Private key file not found for address {address}: {private_key_path}"
         )
 
     try:
@@ -279,9 +268,7 @@ def load_private_key(
         ) from exc
 
     if not isinstance(loaded_key, ec.EllipticCurvePrivateKey):
-        raise KeyStorageError(
-            f"Loaded key for {address} is not an ECDSA private key"
-        )
+        raise KeyStorageError(f"Loaded key for {address} is not an ECDSA private key")
 
     logger.debug("Loaded private key for address %s", address)
     return loaded_key
@@ -310,8 +297,7 @@ def load_public_key(
 
     if not public_key_path.exists():
         raise KeyStorageError(
-            f"Public key file not found for address {address}: "
-            f"{public_key_path}"
+            f"Public key file not found for address {address}: {public_key_path}"
         )
 
     try:
@@ -327,9 +313,7 @@ def load_public_key(
         ) from exc
 
     if not isinstance(loaded_key, ec.EllipticCurvePublicKey):
-        raise KeyStorageError(
-            f"Loaded key for {address} is not an ECDSA public key"
-        )
+        raise KeyStorageError(f"Loaded key for {address} is not an ECDSA public key")
 
     logger.debug("Loaded public key for address %s", address)
     return loaded_key

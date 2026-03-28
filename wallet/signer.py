@@ -53,7 +53,9 @@ logger = configure_logging(__name__)
 # ---------------------------------------------------------------------------
 # secp256k1 curve order (N) — used for low-S normalisation
 # ---------------------------------------------------------------------------
-_SECP256K1_ORDER: int = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
+_SECP256K1_ORDER: int = (
+    0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
+)
 _SECP256K1_HALF_ORDER: int = _SECP256K1_ORDER // 2
 
 # Signature component size in bytes (32 bytes for secp256k1's 256-bit order)
@@ -175,9 +177,8 @@ def _encode_raw_signature(r_value: int, s_value: int) -> bytes:
     Returns:
         64-byte signature.
     """
-    return (
-        r_value.to_bytes(_COMPONENT_SIZE, byteorder="big")
-        + s_value.to_bytes(_COMPONENT_SIZE, byteorder="big")
+    return r_value.to_bytes(_COMPONENT_SIZE, byteorder="big") + s_value.to_bytes(
+        _COMPONENT_SIZE, byteorder="big"
     )
 
 

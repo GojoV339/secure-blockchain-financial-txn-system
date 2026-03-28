@@ -161,18 +161,14 @@ class TestSignTransaction:
 class TestVerifySignature:
     """Tests for ``verify_signature`` — the core security tests."""
 
-    def test_valid_signature_accepted(
-        self, sample_tx_data: dict[str, str]
-    ) -> None:
+    def test_valid_signature_accepted(self, sample_tx_data: dict[str, str]) -> None:
         """Sign → verify round-trip succeeds with correct key and nonce."""
         private_key, public_key = generate_key_pair()
         nonce: str = create_nonce()
         sig: bytes = sign_transaction(sample_tx_data, private_key, nonce)
         assert verify_signature(sig, public_key, sample_tx_data, nonce) is True
 
-    def test_tampered_data_rejected(
-        self, sample_tx_data: dict[str, str]
-    ) -> None:
+    def test_tampered_data_rejected(self, sample_tx_data: dict[str, str]) -> None:
         """Modifying transaction data after signing fails verification."""
         private_key, public_key = generate_key_pair()
         nonce: str = create_nonce()
@@ -182,21 +178,15 @@ class TestVerifySignature:
         tampered: dict[str, Any] = {**sample_tx_data, "value": "999.0"}
         assert verify_signature(sig, public_key, tampered, nonce) is False
 
-    def test_different_nonce_rejected(
-        self, sample_tx_data: dict[str, str]
-    ) -> None:
+    def test_different_nonce_rejected(self, sample_tx_data: dict[str, str]) -> None:
         """Using a different nonce during verification fails (replay protection)."""
         private_key, public_key = generate_key_pair()
         nonce_sign: str = create_nonce()
         nonce_verify: str = create_nonce()  # Different nonce
         sig: bytes = sign_transaction(sample_tx_data, private_key, nonce_sign)
-        assert (
-            verify_signature(sig, public_key, sample_tx_data, nonce_verify) is False
-        )
+        assert verify_signature(sig, public_key, sample_tx_data, nonce_verify) is False
 
-    def test_wrong_public_key_rejected(
-        self, sample_tx_data: dict[str, str]
-    ) -> None:
+    def test_wrong_public_key_rejected(self, sample_tx_data: dict[str, str]) -> None:
         """Signature verified against a different public key fails."""
         private_key_1, _ = generate_key_pair()
         _, public_key_2 = generate_key_pair()  # Different key pair
@@ -204,9 +194,7 @@ class TestVerifySignature:
         sig: bytes = sign_transaction(sample_tx_data, private_key_1, nonce)
         assert verify_signature(sig, public_key_2, sample_tx_data, nonce) is False
 
-    def test_high_s_signature_rejected(
-        self, sample_tx_data: dict[str, str]
-    ) -> None:
+    def test_high_s_signature_rejected(self, sample_tx_data: dict[str, str]) -> None:
         """A forged high-S signature is rejected with VerificationError."""
         private_key, public_key = generate_key_pair()
         nonce: str = create_nonce()
@@ -220,9 +208,7 @@ class TestVerifySignature:
         with pytest.raises(VerificationError, match="high-S value"):
             verify_signature(forged_sig, public_key, sample_tx_data, nonce)
 
-    def test_invalid_signature_length(
-        self, sample_tx_data: dict[str, str]
-    ) -> None:
+    def test_invalid_signature_length(self, sample_tx_data: dict[str, str]) -> None:
         """Signature with wrong byte count raises VerificationError."""
         _, public_key = generate_key_pair()
         nonce: str = create_nonce()
@@ -236,9 +222,7 @@ class TestVerifySignature:
         sig: bytes = sign_transaction({}, private_key, nonce)
         assert verify_signature(sig, public_key, {}, nonce) is True
 
-    def test_added_field_rejected(
-        self, sample_tx_data: dict[str, str]
-    ) -> None:
+    def test_added_field_rejected(self, sample_tx_data: dict[str, str]) -> None:
         """Adding an extra field to tx_data after signing fails verification."""
         private_key, public_key = generate_key_pair()
         nonce: str = create_nonce()

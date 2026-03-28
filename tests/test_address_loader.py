@@ -101,9 +101,7 @@ class TestLoadAddresses:
         with pytest.raises(DatasetLoadError, match="no rows"):
             load_addresses(empty_csv)
 
-    def test_missing_columns_raises_error(
-        self, missing_columns_csv: Path
-    ) -> None:
+    def test_missing_columns_raises_error(self, missing_columns_csv: Path) -> None:
         """CSV missing 'From' or 'To' columns raises DatasetLoadError."""
         with pytest.raises(DatasetLoadError, match="missing required columns"):
             load_addresses(missing_columns_csv)

@@ -83,12 +83,10 @@ class TestSaveAndLoadKeys:
             address, test_passphrase, tmp_keystore
         )
 
-
         # Cannot directly compare encrypted PEM (different salt each time)
         # Instead verify loaded key can derive the same public key
-        assert (
-            serialize_public_key(loaded.public_key())
-            == serialize_public_key(public_key)
+        assert serialize_public_key(loaded.public_key()) == serialize_public_key(
+            public_key
         )
 
     def test_save_and_load_public_key(
@@ -178,9 +176,7 @@ class TestBatchGeneration:
 
         # Verify each address has files
         for address in sample_addresses:
-            loaded: ec.EllipticCurvePublicKey = load_public_key(
-                address, tmp_keystore
-            )
+            loaded: ec.EllipticCurvePublicKey = load_public_key(address, tmp_keystore)
             assert isinstance(loaded, ec.EllipticCurvePublicKey)
 
     def test_skips_existing_addresses(
@@ -198,11 +194,7 @@ class TestBatchGeneration:
         )
         assert second_count == 0
 
-    def test_empty_address_set(
-        self, tmp_keystore: Path, test_passphrase: str
-    ) -> None:
+    def test_empty_address_set(self, tmp_keystore: Path, test_passphrase: str) -> None:
         """Empty address set generates zero keys without error."""
-        count: int = generate_keys_for_addresses(
-            set(), test_passphrase, tmp_keystore
-        )
+        count: int = generate_keys_for_addresses(set(), test_passphrase, tmp_keystore)
         assert count == 0

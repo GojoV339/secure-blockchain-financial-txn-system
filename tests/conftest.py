@@ -8,8 +8,6 @@ from pathlib import Path
 import pytest
 
 
-
-
 @pytest.fixture()
 def tmp_keystore(tmp_path: Path) -> Path:
     """Provide a temporary keystore directory for key persistence tests."""
