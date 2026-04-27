@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blockchain Project — Architecture Graph</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  *{margin:0;padding:0;box-sizing:border-box}
+
+  :root{
+    --bg:#0a0e17;
+    --surface:#111827;
+    --surface2:#1e293b;
+    --border:#1e293b;
+    --text:#e2e8f0;
+    --text2:#94a3b8;
+    --accent:#6366f1;
+    --accent2:#818cf8;
+    --green:#34d399;
+    --amber:#fbbf24;
+    --rose:#fb7185;
+    --cyan:#22d3ee;
+    --purple:#c084fc;
+    --orange:#fb923c;
+  }
+
+  html,body{
+    height:100%;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',system-ui,sans-serif;
+    overflow:hidden;
+  }
+
+  /* ── Canvas ─────────────────────────────────────────────────── */
+  canvas{display:block}
+
+  /* ── Header ─────────────────────────────────────────────────── */
+  #header{
+    position:fixed;top:0;left:0;right:0;
+    display:flex;align-items:center;gap:16px;
+    padding:12px 24px;
+    background:linear-gradient(180deg,rgba(10,14,23,.98),rgba(10,14,23,.85));
+    backdrop-filter:blur(24px);
+    border-bottom:1px solid rgba(99,102,241,.15);
+    z-index:100;
+  }
+  #header h1{
+    font-size:16px;font-weight:700;letter-spacing:-.3px;
+    background:linear-gradient(135deg,var(--accent2),var(--cyan));
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  }
+  #header .pill{
+    font-size:11px;font-weight:600;
+    padding:3px 10px;border-radius:99px;
+    background:rgba(99,102,241,.15);color:var(--accent2);
+  }
+  #header .spacer{flex:1}
+  .legend{display:flex;gap:14px;align-items:center;flex-wrap:wrap;}
+  .legend-item{
+    display:flex;align-items:center;gap:5px;
+    font-size:11px;color:var(--text2);
+  }
+  .legend-dot{
+    width:10px;height:10px;border-radius:50%;
+  }
+
+  /* ── Sidebar ────────────────────────────────────────────────── */
+  #sidebar{
+    position:fixed;top:52px;right:0;bottom:0;width:380px;
+    background:linear-gradient(180deg,var(--surface),rgba(17,24,39,.96));
+    backdrop-filter:blur(20px);
+    border-left:1px solid var(--border);
+    padding:20px;
+    overflow-y:auto;
+    transform:translateX(100%);
+    transition:transform .35s cubic-bezier(.4,0,.2,1);
+    z-index:90;
+  }
+  #sidebar.open{transform:translateX(0)}
+  #sidebar h2{
+    font-size:14px;font-weight:700;margin-bottom:6px;
+    color:var(--accent2);
+  }
+  #sidebar .file-path{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;color:var(--text2);margin-bottom:14px;
+    word-break:break-all;
+  }
+  #sidebar .section{margin-bottom:16px}
+  #sidebar .section-title{
+    font-size:10px;font-weight:700;text-transform:uppercase;
+    letter-spacing:1px;color:var(--text2);margin-bottom:6px;
+  }
+  #sidebar .badge{
+    display:inline-block;font-size:10px;font-weight:600;
+    padding:2px 8px;border-radius:4px;margin:2px 4px 2px 0;
+  }
+  #sidebar .desc{
+    font-size:12px;line-height:1.6;color:var(--text2);
+  }
+  #sidebar .fn-item{
+    padding:6px 10px;border-radius:6px;margin-bottom:4px;
+    background:rgba(255,255,255,.03);
+    border:1px solid rgba(255,255,255,.04);
+    font-family:'JetBrains Mono',monospace;font-size:11px;
+    color:var(--green);
+  }
+  #sidebar .fn-item .fn-desc{
+    font-family:'Inter',sans-serif;font-size:10px;color:var(--text2);margin-top:2px;display:block;
+  }
+  #sidebar .close-btn{
+    position:absolute;top:14px;right:14px;
+    width:28px;height:28px;border-radius:6px;
+    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);
+    color:var(--text2);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    font-size:14px;transition:all .2s;
+  }
+  #sidebar .close-btn:hover{background:rgba(251,113,133,.15);color:var(--rose)}
+
+  /* ── Tooltip ────────────────────────────────────────────────── */
+  #tooltip{
+    position:fixed;
+    padding:6px 12px;border-radius:6px;
+    background:var(--surface2);
+    border:1px solid rgba(99,102,241,.2);
+    font-size:11px;color:var(--text);
+    pointer-events:none;opacity:0;
+    transition:opacity .15s;z-index:200;
+    max-width:280px;
+  }
+
+  /* ── Controls ───────────────────────────────────────────────── */
+  #controls{
+    position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+    display:flex;gap:8px;z-index:100;
+  }
+  #controls button{
+    padding:6px 16px;border-radius:8px;
+    background:var(--surface2);border:1px solid var(--border);
+    color:var(--text);font-size:12px;font-weight:500;
+    cursor:pointer;transition:all .2s;
+    font-family:'Inter',sans-serif;
+  }
+  #controls button:hover{
+    background:rgba(99,102,241,.2);border-color:var(--accent);
+  }
+  #controls button.active{
+    background:rgba(99,102,241,.25);border-color:var(--accent2);color:var(--accent2);
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar{width:5px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:var(--surface2);border-radius:3px}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div id="header">
+  <h1>⛓ Blockchain Project Graph</h1>
+  <span class="pill">v0.1.0</span>
+  <div class="spacer"></div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>Package</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Module</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div>Test</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--cyan)"></div>Config / Infra</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--rose)"></div>Data</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--purple)"></div>Class</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--orange)"></div>External</div>
+  </div>
+</div>
+
+<!-- Sidebar detail panel -->
+<div id="sidebar">
+  <button class="close-btn" onclick="closeSidebar()">✕</button>
+  <div id="sidebar-content"></div>
+</div>
+
+<!-- Tooltip -->
+<div id="tooltip"></div>
+
+<!-- Controls -->
+<div id="controls">
+  <button onclick="resetView()">Reset View</button>
+  <button onclick="toggleLabels()" id="btnLabels" class="active">Labels</button>
+  <button onclick="toggleEdges()" id="btnEdges" class="active">Edges</button>
+  <button onclick="filterLayer('all')" class="active" data-layer="all">All</button>
+  <button onclick="filterLayer('wallet')" data-layer="wallet">Wallet</button>
+  <button onclick="filterLayer('tests')" data-layer="tests">Tests</button>
+  <button onclick="filterLayer('infra')" data-layer="infra">Infra</button>
+</div>
+
+<canvas id="canvas"></canvas>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// DATA MODEL
+// ═══════════════════════════════════════════════════════════════
+
+const NODES = [
+  // ── Packages / Root ──
+  {id:'root', label:'block-chain-project', group:'package', layer:'all',
+   desc:'Secure Blockchain-Based Decentralized Financial Transaction System with Intelligent Risk Monitoring.',
+   file:'pyproject.toml', r:38,
+   details:{
+     deps:['cryptography','flask','pandas','scikit-learn','web3','python-dotenv'],
+     devDeps:['bandit','pip-audit','pytest','pytest-cov','ruff'],
+     python:'≥ 3.13'
+   }},
+  {id:'wallet_pkg', label:'wallet/', group:'package', layer:'wallet',
+   desc:'Wallet Identity Module — address management, ECDSA key pairs with encrypted storage, digital signatures.',
+   file:'wallet/__init__.py', r:32},
+
+  // ── Wallet modules ──
+  {id:'config', label:'config.py', group:'config', layer:'wallet',
+   desc:'Env-based configuration. Single source of truth for paths, encryption settings, and logging. No hardcoded secrets.',
+   file:'wallet/config.py', r:24,
+   fns:[
+     {name:'get_encryption_passphrase()', desc:'Read passphrase from env — never cached'},
+     {name:'configure_logging(name)', desc:'Structured console logger with LOG_LEVEL'},
+   ],
+   exports:['DATASET_PATH','KEYSTORE_PATH','LOG_LEVEL','get_encryption_passphrase','configure_logging']},
+
+  {id:'exceptions', label:'exceptions.py', group:'module', layer:'wallet',
+   desc:'Custom exception hierarchy for precise error handling across the wallet module.',
+   file:'wallet/exceptions.py', r:22,
+   classes:['WalletBaseError','InvalidAddressError','DatasetLoadError','KeyGenerationError','KeyStorageError','SignatureError','VerificationError']},
+
+  {id:'address_loader', label:'address_loader.py', group:'module', layer:'wallet',
+   desc:'Reads Ethereum tx datasets, extracts unique validated wallet addresses. Filters non-hex labels (e.g. BinanceWallet).',
+   file:'wallet/address_loader.py', r:26,
+   fns:[
+     {name:'validate_address(addr)', desc:'Regex 0x+40 hex check, ReDoS-safe'},
+     {name:'load_addresses(csv_path)', desc:'CSV → set of validated lowercase addresses'},
+   ]},
+
+  {id:'key_manager', label:'key_manager.py', group:'module', layer:'wallet',
+   desc:'ECDSA key pair management on secp256k1. Handles generation, AES-256 encrypted persistence, and loading.',
+   file:'wallet/key_manager.py', r:28,
+   fns:[
+     {name:'generate_key_pair()', desc:'New ECDSA keypair, rate-limit 10/min/IP'},
+     {name:'serialize_private_key(key, pass)', desc:'PEM + BestAvailableEncryption'},
+     {name:'serialize_public_key(key)', desc:'PEM unencrypted'},
+     {name:'save_keys(addr, priv, pub, pass)', desc:'Encrypted to disk, chmod 0o600'},
+     {name:'load_private_key(addr, pass)', desc:'Decrypt from disk'},
+     {name:'load_public_key(addr)', desc:'Load PEM from disk'},
+     {name:'generate_keys_for_addresses(addrs)', desc:'Batch gen, skips existing'},
+   ]},
+
+  {id:'signer', label:'signer.py', group:'module', layer:'wallet',
+   desc:'ECDSA signing & verification with replay protection (UUID4 nonce), low-S malleability protection, canonical JSON.',
+   file:'wallet/signer.py', r:28,
+   fns:[
+     {name:'create_nonce()', desc:'UUID4 via os.urandom CSPRNG'},
+     {name:'sign_transaction(tx, key, nonce)', desc:'ECDSA-SHA256, low-S normalised, 64B raw'},
+     {name:'verify_signature(sig, pub, tx, nonce)', desc:'Rejects high-S, verifies ECDSA'},
+   ],
+   consts:['_SECP256K1_ORDER','_SECP256K1_HALF_ORDER']},
+
+  // ── Tests ──
+  {id:'conftest', label:'conftest.py', group:'test', layer:'tests',
+   desc:'Shared pytest fixtures: tmp keystore, sample addresses, key pairs, CSV files, passphrase.',
+   file:'tests/conftest.py', r:22,
+   fns:[
+     {name:'tmp_keystore', desc:'Temp keystore directory'},
+     {name:'sample_addresses', desc:'3 valid Ethereum addresses'},
+     {name:'sample_key_pair', desc:'Fresh ECDSA keypair'},
+     {name:'sample_tx_data', desc:'Sample tx dict'},
+     {name:'sample_csv / empty_csv / missing_columns_csv', desc:'Test CSV fixtures'},
+   ]},
+
+  {id:'test_addr', label:'test_address_loader.py', group:'test', layer:'tests',
+   desc:'11 tests: address validation format checks, CSV loading, filtering of non-hex labels, error handling.',
+   file:'tests/test_address_loader.py', r:22,
+   classes:['TestValidateAddress (7)','TestLoadAddresses (4)']},
+
+  {id:'test_keys', label:'test_key_manager.py', group:'test', layer:'tests',
+   desc:'14 tests: key generation, serialisation, persistence round-trips, wrong passphrase, batch generation.',
+   file:'tests/test_key_manager.py', r:22,
+   classes:['TestGenerateKeyPair (3)','TestSerialisation (2)','TestSaveAndLoadKeys (6)','TestBatchGeneration (3)']},
+
+  {id:'test_sign', label:'test_signer.py', group:'test', layer:'tests',
+   desc:'16 tests: nonce, canonical JSON, low-S, sign/verify round-trip, tamper detection, malleability rejection.',
+   file:'tests/test_signer.py', r:22,
+   classes:['TestCreateNonce (3)','TestCanonicalMessage (4)','TestLowSNormalisation (3)','TestRawSignatureEncoding (2)','TestSignTransaction (2)','TestVerifySignature (7)']},
+
+  // ── Infra / Data ──
+  {id:'ci', label:'CI Pipeline', group:'config', layer:'infra',
+   desc:'GitHub Actions: Ruff lint, Bandit security scan, pip-audit dependency check, pytest with 80% coverage gate.',
+   file:'.github/workflows/ci.yml', r:24,
+   fns:[
+     {name:'lint', desc:'Ruff check + format'},
+     {name:'security', desc:'Bandit scan -ll'},
+     {name:'dependency-check', desc:'pip-audit CVE scan'},
+     {name:'test', desc:'pytest --cov-fail-under=80'},
+   ]},
+
+  {id:'main', label:'main.py', group:'config', layer:'infra',
+   desc:'Entry point (placeholder). Prints hello message.',
+   file:'main.py', r:18},
+
+  {id:'verify', label:'verify_setup.py', group:'config', layer:'infra',
+   desc:'Quick Ganache connectivity check — lists accounts and ETH balances via web3.py.',
+   file:'verify_setup.py', r:18},
+
+  {id:'dataset', label:'Eth_Txs.csv', group:'data', layer:'infra',
+   desc:'Ethereum transaction dataset (~98 MB). Columns: Record, TxHash, Block, Age, From, To, Value, TxFee.',
+   file:'datasets/Eth_Txs.csv', r:22},
+
+  {id:'fraud_csv', label:'Fraud Dataset', group:'data', layer:'infra',
+   desc:'Transaction fraud dataset (~2.9 MB) for ML risk monitoring module (Phase 7).',
+   file:'datasets/transaction_Fraud_dataset.csv', r:20},
+
+  {id:'dotenv', label:'.env', group:'config', layer:'infra',
+   desc:'Environment secrets: WALLET_ENCRYPTION_PASSPHRASE, DATASET_PATH, KEYSTORE_PATH, LOG_LEVEL.',
+   file:'.env', r:18},
+
+  // ── External deps (hover context) ──
+  {id:'ext_crypto', label:'cryptography', group:'external', layer:'all', r:18,
+   desc:'Python cryptography library — ECDSA, AES-256-CBC, PBKDF2-HMAC, PEM serialisation.'},
+  {id:'ext_pandas', label:'pandas', group:'external', layer:'all', r:16,
+   desc:'DataFrame library for CSV dataset loading and address extraction.'},
+  {id:'ext_web3', label:'web3.py', group:'external', layer:'all', r:16,
+   desc:'Python Ethereum library for blockchain connectivity.'},
+  {id:'ext_flask', label:'Flask', group:'external', layer:'all', r:16,
+   desc:'Lightweight web framework for Phase 6 REST API.'},
+  {id:'ext_sklearn', label:'scikit-learn', group:'external', layer:'all', r:16,
+   desc:'ML library for Isolation Forest anomaly detection (Phase 7).'},
+];
+
+const EDGES = [
+  // Package containment
+  {from:'root', to:'wallet_pkg', type:'contains', label:'contains'},
+  {from:'root', to:'ci', type:'contains'},
+  {from:'root', to:'main', type:'contains'},
+  {from:'root', to:'verify', type:'contains'},
+  {from:'root', to:'dataset', type:'contains'},
+  {from:'root', to:'fraud_csv', type:'contains'},
+  {from:'root', to:'dotenv', type:'contains'},
+
+  {from:'wallet_pkg', to:'config', type:'contains'},
+  {from:'wallet_pkg', to:'exceptions', type:'contains'},
+  {from:'wallet_pkg', to:'address_loader', type:'contains'},
+  {from:'wallet_pkg', to:'key_manager', type:'contains'},
+  {from:'wallet_pkg', to:'signer', type:'contains'},
+
+  // Internal imports
+  {from:'config', to:'dotenv', type:'imports', label:'load_dotenv'},
+  {from:'address_loader', to:'config', type:'imports', label:'DATASET_PATH, configure_logging'},
+  {from:'address_loader', to:'exceptions', type:'imports', label:'DatasetLoadError, InvalidAddressError'},
+  {from:'key_manager', to:'config', type:'imports', label:'KEYSTORE_PATH, configure_logging, get_encryption_passphrase'},
+  {from:'key_manager', to:'exceptions', type:'imports', label:'KeyGenerationError, KeyStorageError'},
+  {from:'signer', to:'config', type:'imports', label:'configure_logging'},
+  {from:'signer', to:'exceptions', type:'imports', label:'SignatureError, VerificationError'},
+
+  // Data flow
+  {from:'dataset', to:'address_loader', type:'data', label:'CSV → addresses'},
+  {from:'address_loader', to:'key_manager', type:'data', label:'addresses → key gen'},
+  {from:'key_manager', to:'signer', type:'data', label:'keys → sign/verify'},
+
+  // Test → Module
+  {from:'test_addr', to:'address_loader', type:'tests', label:'tests'},
+  {from:'test_keys', to:'key_manager', type:'tests', label:'tests'},
+  {from:'test_sign', to:'signer', type:'tests', label:'tests'},
+  {from:'conftest', to:'key_manager', type:'imports', label:'generate_key_pair'},
+  {from:'test_sign', to:'key_manager', type:'imports', label:'generate_key_pair'},
+
+  // External deps
+  {from:'key_manager', to:'ext_crypto', type:'external', label:'ec, serialization'},
+  {from:'signer', to:'ext_crypto', type:'external', label:'hashes, ec, ECDSA'},
+  {from:'address_loader', to:'ext_pandas', type:'external', label:'pd.read_csv'},
+  {from:'verify', to:'ext_web3', type:'external', label:'Web3'},
+
+  // CI → tools
+  {from:'ci', to:'test_addr', type:'triggers', label:'pytest'},
+  {from:'ci', to:'test_keys', type:'triggers', label:'pytest'},
+  {from:'ci', to:'test_sign', type:'triggers', label:'pytest'},
+];
+
+// ═══════════════════════════════════════════════════════════════
+// COLORS
+// ═══════════════════════════════════════════════════════════════
+const GROUP_COLORS = {
+  package:'#6366f1', module:'#34d399', test:'#fbbf24',
+  config:'#22d3ee', data:'#fb7185', 'class':'#c084fc', external:'#fb923c'
+};
+const EDGE_COLORS = {
+  contains:'rgba(99,102,241,.12)',
+  imports:'rgba(99,102,241,.35)',
+  data:'rgba(34,211,238,.4)',
+  tests:'rgba(251,191,36,.3)',
+  external:'rgba(251,146,60,.2)',
+  triggers:'rgba(251,191,36,.15)',
+};
+
+// ═══════════════════════════════════════════════════════════════
+// CANVAS SETUP
+// ═══════════════════════════════════════════════════════════════
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+let W, H, dpr;
+function resize(){
+  dpr = window.devicePixelRatio || 1;
+  W = window.innerWidth; H = window.innerHeight;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  canvas.style.width = W+'px'; canvas.style.height = H+'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ═══════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════
+let showLabels = true, showEdges = true, activeLayer = 'all';
+let camera = {x:0, y:0, zoom:1};
+let drag = null, hover = null, selected = null;
+let simRunning = true;
+
+// ═══════════════════════════════════════════════════════════════
+// PHYSICS INIT
+// ═══════════════════════════════════════════════════════════════
+NODES.forEach((n,i) => {
+  const angle = (i / NODES.length) * Math.PI * 2;
+  const spread = 200 + Math.random() * 150;
+  n.x = Math.cos(angle) * spread;
+  n.y = Math.sin(angle) * spread;
+  n.vx = 0; n.vy = 0;
+  n.visible = true;
+  n.alpha = 1;
+});
+
+function isVisible(n){
+  if(activeLayer === 'all') return true;
+  if(activeLayer === 'wallet') return n.layer==='wallet' || n.id==='root';
+  if(activeLayer === 'tests') return n.layer==='tests' || ['wallet_pkg','address_loader','key_manager','signer','root'].includes(n.id);
+  if(activeLayer === 'infra') return n.layer==='infra' || n.id==='root';
+  return true;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PHYSICS SIMULATION
+// ═══════════════════════════════════════════════════════════════
+function simulate(){
+  const alpha = .3, repulsion = 3000, spring = .004, damping = .85, idealLen = 140;
+  const visNodes = NODES.filter(n => n.visible);
+
+  // Repulsion (between all visible nodes)
+  for(let i=0;i<visNodes.length;i++){
+    for(let j=i+1;j<visNodes.length;j++){
+      let dx = visNodes[j].x - visNodes[i].x;
+      let dy = visNodes[j].y - visNodes[i].y;
+      let dist = Math.sqrt(dx*dx+dy*dy) || 1;
+      let force = repulsion / (dist * dist);
+      let fx = (dx/dist)*force;
+      let fy = (dy/dist)*force;
+      visNodes[i].vx -= fx; visNodes[i].vy -= fy;
+      visNodes[j].vx += fx; visNodes[j].vy += fy;
+    }
+  }
+
+  // Spring (edges)
+  EDGES.forEach(e => {
+    const a = NODES.find(n=>n.id===e.from);
+    const b = NODES.find(n=>n.id===e.to);
+    if(!a||!b||!a.visible||!b.visible) return;
+    let dx = b.x - a.x, dy = b.y - a.y;
+    let dist = Math.sqrt(dx*dx+dy*dy) || 1;
+    let force = spring * (dist - idealLen);
+    let fx = (dx/dist)*force;
+    let fy = (dy/dist)*force;
+    a.vx += fx; a.vy += fy;
+    b.vx -= fx; b.vy -= fy;
+  });
+
+  // Center pull
+  visNodes.forEach(n => {
+    n.vx -= n.x * .001;
+    n.vy -= n.y * .001;
+  });
+
+  // Integrate
+  visNodes.forEach(n => {
+    if(drag && drag.node === n) return;
+    n.vx *= damping; n.vy *= damping;
+    n.x += n.vx * alpha;
+    n.y += n.vy * alpha;
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════════════
+function toScreen(x,y){
+  return {x: (x - camera.x) * camera.zoom + W/2, y: (y - camera.y) * camera.zoom + H/2};
+}
+function toWorld(sx,sy){
+  return {x: (sx - W/2) / camera.zoom + camera.x, y: (sy - H/2) / camera.zoom + camera.y};
+}
+
+function drawEdge(a,b,edge){
+  const p1 = toScreen(a.x, a.y);
+  const p2 = toScreen(b.x, b.y);
+
+  const color = EDGE_COLORS[edge.type] || 'rgba(255,255,255,.1)';
+  ctx.strokeStyle = color;
+  ctx.lineWidth = edge.type === 'data' ? 2 : edge.type === 'imports' ? 1.5 : 1;
+
+  // Curved
+  const mx = (p1.x+p2.x)/2, my = (p1.y+p2.y)/2;
+  const dx = p2.x-p1.x, dy = p2.y-p1.y;
+  const dist = Math.sqrt(dx*dx+dy*dy);
+  const offset = dist * .08;
+  const cx = mx - dy/dist * offset;
+  const cy = my + dx/dist * offset;
+
+  ctx.beginPath();
+  ctx.moveTo(p1.x, p1.y);
+  ctx.quadraticCurveTo(cx, cy, p2.x, p2.y);
+  ctx.stroke();
+
+  // Arrowhead for data/imports
+  if(edge.type === 'data' || edge.type === 'imports' || edge.type === 'tests'){
+    const t = .7;
+    const ax = (1-t)*(1-t)*p1.x + 2*(1-t)*t*cx + t*t*p2.x;
+    const ay = (1-t)*(1-t)*p1.y + 2*(1-t)*t*cy + t*t*p2.y;
+    const tx2 = t+.01;
+    const bx = (1-tx2)*(1-tx2)*p1.x + 2*(1-tx2)*tx2*cx + tx2*tx2*p2.x;
+    const by = (1-tx2)*(1-tx2)*p1.y + 2*(1-tx2)*tx2*cy + tx2*tx2*p2.y;
+    const angle = Math.atan2(by-ay, bx-ax);
+    const sz = 6 * camera.zoom;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(ax + Math.cos(angle)*sz, ay + Math.sin(angle)*sz);
+    ctx.lineTo(ax + Math.cos(angle+2.5)*sz*.6, ay + Math.sin(angle+2.5)*sz*.6);
+    ctx.lineTo(ax + Math.cos(angle-2.5)*sz*.6, ay + Math.sin(angle-2.5)*sz*.6);
+    ctx.closePath(); ctx.fill();
+  }
+}
+
+function drawNode(n){
+  const p = toScreen(n.x, n.y);
+  const r = n.r * camera.zoom;
+  const col = GROUP_COLORS[n.group] || '#6366f1';
+  const isHover = hover === n;
+  const isSel = selected === n;
+  const alpha = n.alpha;
+
+  ctx.globalAlpha = alpha;
+
+  // Glow
+  if(isHover || isSel){
+    const grd = ctx.createRadialGradient(p.x,p.y,r,p.x,p.y,r*3);
+    grd.addColorStop(0, col+'40');
+    grd.addColorStop(1, col+'00');
+    ctx.fillStyle = grd;
+    ctx.beginPath(); ctx.arc(p.x,p.y,r*3,0,Math.PI*2); ctx.fill();
+  }
+
+  // Ring
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, r, 0, Math.PI*2);
+  const rGrd = ctx.createRadialGradient(p.x-r*.3,p.y-r*.3,0,p.x,p.y,r);
+  rGrd.addColorStop(0, col+'50');
+  rGrd.addColorStop(1, col+'18');
+  ctx.fillStyle = rGrd;
+  ctx.fill();
+  ctx.strokeStyle = isHover||isSel ? col : col+'80';
+  ctx.lineWidth = isHover||isSel ? 2.5 : 1.5;
+  ctx.stroke();
+
+  // Inner dot
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, r*.35, 0, Math.PI*2);
+  ctx.fillStyle = col;
+  ctx.fill();
+
+  // Label
+  if(showLabels && camera.zoom > .35){
+    ctx.font = `${Math.max(9,11*camera.zoom)}px Inter`;
+    ctx.fillStyle = '#e2e8f0';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText(n.label, p.x, p.y + r + 6);
+  }
+
+  ctx.globalAlpha = 1;
+}
+
+// Particle system for data flow edges
+let particles = [];
+function spawnParticles(){
+  EDGES.filter(e => e.type === 'data').forEach(e => {
+    const a = NODES.find(n=>n.id===e.from);
+    const b = NODES.find(n=>n.id===e.to);
+    if(!a||!b||!a.visible||!b.visible) return;
+    if(Math.random() > .03) return;
+    particles.push({from:e.from, to:e.to, t:0, speed:.005+Math.random()*.003});
+  });
+}
+
+function drawParticles(){
+  particles = particles.filter(p => p.t < 1);
+  particles.forEach(p => {
+    const a = NODES.find(n=>n.id===p.from);
+    const b = NODES.find(n=>n.id===p.to);
+    if(!a||!b) return;
+    p.t += p.speed;
+    const x = a.x + (b.x-a.x)*p.t;
+    const y = a.y + (b.y-a.y)*p.t;
+    const sp = toScreen(x,y);
+    const alpha = Math.sin(p.t * Math.PI);
+    ctx.beginPath();
+    ctx.arc(sp.x, sp.y, 2.5*camera.zoom, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(34,211,238,${alpha*.8})`;
+    ctx.fill();
+  });
+}
+
+function render(){
+  ctx.clearRect(0,0,W,H);
+
+  // Grid dots
+  const gridSize = 40 * camera.zoom;
+  if(gridSize > 8){
+    ctx.fillStyle = 'rgba(255,255,255,.02)';
+    const startX = ((-camera.x * camera.zoom + W/2) % gridSize) - gridSize;
+    const startY = ((-camera.y * camera.zoom + H/2) % gridSize) - gridSize;
+    for(let x=startX;x<W;x+=gridSize){
+      for(let y=startY;y<H;y+=gridSize){
+        ctx.fillRect(x,y,1,1);
+      }
+    }
+  }
+
+  // Edges
+  if(showEdges){
+    EDGES.forEach(e => {
+      const a = NODES.find(n=>n.id===e.from);
+      const b = NODES.find(n=>n.id===e.to);
+      if(!a||!b||!a.visible||!b.visible) return;
+      if(a.alpha < .1 || b.alpha < .1) return;
+      drawEdge(a,b,e);
+    });
+  }
+
+  // Particles
+  spawnParticles();
+  drawParticles();
+
+  // Nodes
+  NODES.filter(n=>n.visible).sort((a,b)=>a.r-b.r).forEach(drawNode);
+}
+
+function loop(){
+  NODES.forEach(n => {
+    const vis = isVisible(n);
+    n.visible = vis || n.alpha > .01;
+    n.alpha += (vis ? 1 : 0 - n.alpha) * .08;
+  });
+  if(simRunning) simulate();
+  render();
+  requestAnimationFrame(loop);
+}
+loop();
+
+// ═══════════════════════════════════════════════════════════════
+// INTERACTION
+// ═══════════════════════════════════════════════════════════════
+function hitTest(mx, my){
+  const w = toWorld(mx, my);
+  let closest = null, minD = Infinity;
+  NODES.filter(n=>n.visible && n.alpha > .3).forEach(n => {
+    const d = Math.sqrt((n.x-w.x)**2 + (n.y-w.y)**2);
+    if(d < n.r + 5 && d < minD){ minD = d; closest = n; }
+  });
+  return closest;
+}
+
+const tooltip = document.getElementById('tooltip');
+
+canvas.addEventListener('mousemove', e => {
+  const mx = e.clientX, my = e.clientY;
+  const h = hitTest(mx, my);
+  hover = h;
+  canvas.style.cursor = h ? 'pointer' : (drag ? 'grabbing' : 'default');
+
+  if(h && !drag){
+    tooltip.style.opacity = '1';
+    tooltip.style.left = (mx+14)+'px';
+    tooltip.style.top = (my+14)+'px';
+    tooltip.innerHTML = `<strong>${h.label}</strong><br><span style="color:#94a3b8">${h.desc||''}</span>`;
+  } else {
+    tooltip.style.opacity = '0';
+  }
+
+  if(drag && drag.node){
+    const w = toWorld(mx, my);
+    drag.node.x = w.x;
+    drag.node.y = w.y;
+    drag.node.vx = 0;
+    drag.node.vy = 0;
+  } else if(drag && drag.pan){
+    camera.x -= (mx - drag.lastX) / camera.zoom;
+    camera.y -= (my - drag.lastY) / camera.zoom;
+    drag.lastX = mx; drag.lastY = my;
+  }
+});
+
+canvas.addEventListener('mousedown', e => {
+  const h = hitTest(e.clientX, e.clientY);
+  if(h){
+    drag = {node: h};
+  } else {
+    drag = {pan:true, lastX:e.clientX, lastY:e.clientY};
+  }
+});
+
+canvas.addEventListener('mouseup', e => {
+  if(drag && drag.node && !drag.moved){
+    openSidebar(drag.node);
+    selected = drag.node;
+  }
+  drag = null;
+});
+
+canvas.addEventListener('dblclick', e => {
+  const h = hitTest(e.clientX, e.clientY);
+  if(h){ openSidebar(h); selected = h; }
+});
+
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  const factor = e.deltaY > 0 ? .92 : 1.08;
+  camera.zoom = Math.max(.15, Math.min(4, camera.zoom * factor));
+  // Zoom towards cursor
+  const w1 = toWorld(e.clientX, e.clientY);
+  camera.zoom *= factor > 1 ? 1 : 1; // already set
+  const w2 = toWorld(e.clientX, e.clientY);
+  camera.x += w1.x - w2.x;
+  camera.y += w1.y - w2.y;
+}, {passive:false});
+
+// ═══════════════════════════════════════════════════════════════
+// SIDEBAR
+// ═══════════════════════════════════════════════════════════════
+function openSidebar(node){
+  const sb = document.getElementById('sidebar');
+  const cont = document.getElementById('sidebar-content');
+  let html = `<h2>${node.label}</h2>`;
+  if(node.file) html += `<div class="file-path">${node.file}</div>`;
+  html += `<div class="section"><div class="desc">${node.desc||''}</div></div>`;
+
+  // Badge
+  html += `<div class="section"><span class="badge" style="background:${GROUP_COLORS[node.group]||'#6366f1'}20;color:${GROUP_COLORS[node.group]||'#6366f1'}">${node.group}</span>`;
+  if(node.layer) html += `<span class="badge" style="background:rgba(255,255,255,.05);color:var(--text2)">${node.layer}</span>`;
+  html += `</div>`;
+
+  // Functions
+  if(node.fns && node.fns.length){
+    html += `<div class="section"><div class="section-title">Functions / Fixtures</div>`;
+    node.fns.forEach(f => {
+      html += `<div class="fn-item">${f.name}<span class="fn-desc">${f.desc||''}</span></div>`;
+    });
+    html += `</div>`;
+  }
+
+  // Classes
+  if(node.classes && node.classes.length){
+    html += `<div class="section"><div class="section-title">Classes / Exceptions</div>`;
+    node.classes.forEach(c => {
+      html += `<div class="fn-item" style="color:var(--purple)">${c}</div>`;
+    });
+    html += `</div>`;
+  }
+
+  // Exports / consts
+  if(node.exports){
+    html += `<div class="section"><div class="section-title">Exports</div>`;
+    node.exports.forEach(e => { html += `<span class="badge" style="background:rgba(34,211,238,.1);color:var(--cyan)">${e}</span>`; });
+    html += `</div>`;
+  }
+  if(node.consts){
+    html += `<div class="section"><div class="section-title">Constants</div>`;
+    node.consts.forEach(c => { html += `<span class="badge" style="background:rgba(251,146,60,.1);color:var(--orange)">${c}</span>`; });
+    html += `</div>`;
+  }
+
+  // Details (root node)
+  if(node.details){
+    const d = node.details;
+    if(d.python) html += `<div class="section"><div class="section-title">Python</div><span class="badge" style="background:rgba(99,102,241,.15);color:var(--accent2)">Python ${d.python}</span></div>`;
+    if(d.deps){
+      html += `<div class="section"><div class="section-title">Dependencies</div>`;
+      d.deps.forEach(dep => { html += `<span class="badge" style="background:rgba(34,211,238,.1);color:var(--cyan)">${dep}</span>`; });
+      html += `</div>`;
+    }
+    if(d.devDeps){
+      html += `<div class="section"><div class="section-title">Dev Dependencies</div>`;
+      d.devDeps.forEach(dep => { html += `<span class="badge" style="background:rgba(251,191,36,.1);color:var(--amber)">${dep}</span>`; });
+      html += `</div>`;
+    }
+  }
+
+  // Connected edges
+  const connected = EDGES.filter(e => e.from===node.id || e.to===node.id);
+  if(connected.length){
+    html += `<div class="section"><div class="section-title">Connections (${connected.length})</div>`;
+    connected.forEach(e => {
+      const otherId = e.from===node.id ? e.to : e.from;
+      const other = NODES.find(n=>n.id===otherId);
+      const dir = e.from===node.id ? '→' : '←';
+      html += `<div class="fn-item" style="color:var(--text2);cursor:pointer" onclick="focusNode('${otherId}')">${dir} ${other?other.label:otherId} <span class="fn-desc">${e.label||e.type}</span></div>`;
+    });
+    html += `</div>`;
+  }
+
+  cont.innerHTML = html;
+  sb.classList.add('open');
+}
+
+function closeSidebar(){
+  document.getElementById('sidebar').classList.remove('open');
+  selected = null;
+}
+
+function focusNode(id){
+  const n = NODES.find(nd=>nd.id===id);
+  if(!n) return;
+  camera.x = n.x; camera.y = n.y; camera.zoom = 1.5;
+  selected = n;
+  openSidebar(n);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CONTROLS
+// ═══════════════════════════════════════════════════════════════
+function resetView(){ camera = {x:0,y:0,zoom:1}; selected=null; closeSidebar(); }
+
+function toggleLabels(){
+  showLabels = !showLabels;
+  document.getElementById('btnLabels').classList.toggle('active', showLabels);
+}
+
+function toggleEdges(){
+  showEdges = !showEdges;
+  document.getElementById('btnEdges').classList.toggle('active', showEdges);
+}
+
+function filterLayer(layer){
+  activeLayer = layer;
+  document.querySelectorAll('#controls button[data-layer]').forEach(b => {
+    b.classList.toggle('active', b.dataset.layer === layer);
+  });
+}
+
+// Keyboard
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape') closeSidebar();
+  if(e.key === 'l') toggleLabels();
+  if(e.key === 'e') toggleEdges();
+  if(e.key === 'r') resetView();
+});
+</script>
+</body>
+</html>
