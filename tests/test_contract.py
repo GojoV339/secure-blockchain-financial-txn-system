@@ -342,7 +342,7 @@ class TestSubmitTransaction:
     def _setup_submit_event(self, ci: ContractInterface) -> None:
         """Configure the mock contract to return a TransactionSubmitted event."""
         mock_log = MagicMock()
-        mock_log.__getitem__ = lambda self, key: {"txHash": _SAMPLE_TX_HASH}[key]
+        mock_log.__getitem__ = lambda self, key: {"args": {"txHash": _SAMPLE_TX_HASH}}[key]
         ci.contract.events.TransactionSubmitted.return_value.process_receipt.return_value = (
             [mock_log]
         )
