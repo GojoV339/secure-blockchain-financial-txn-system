@@ -239,7 +239,10 @@ class ContractInterface:
                 "TransactionSubmitted event not emitted — deployment may be wrong."
             )
         contract_tx_hash: bytes = logs[0]["args"]["txHash"]
-        logger.info("Transaction submitted — contract hash: %s", contract_tx_hash.hex())
+        logger.info(
+            "Transaction submitted — contract hash: %s",
+            contract_tx_hash.hex(),
+        )
         return contract_tx_hash
 
     def approve_transaction(self, contract_tx_hash: bytes, owner: str) -> Any:
@@ -255,9 +258,9 @@ class ContractInterface:
         Returns:
             Web3 transaction receipt.
         """
-        tx = self.contract.functions.approveTransaction(
-            contract_tx_hash
-        ).transact({"from": owner})
+        tx = self.contract.functions.approveTransaction(contract_tx_hash).transact(
+            {"from": owner}
+        )
         receipt = self.w3.eth.wait_for_transaction_receipt(tx)
         logger.info("Transaction approved: %s", contract_tx_hash.hex())
         return receipt

@@ -170,7 +170,11 @@ _SAMPLE_TX_HASH: bytes = b"\x00" * 31 + b"\x01"  # deterministic 32-byte value
 @pytest.fixture()
 def artifact_file(tmp_path: Path) -> Path:
     """Write a minimal Hardhat-style artifact JSON to tmp_path."""
-    artifact = {"abi": _MINIMAL_ABI, "bytecode": "0x", "contractName": "TransactionContract"}
+    artifact = {
+        "abi": _MINIMAL_ABI,
+        "bytecode": "0x",
+        "contractName": "TransactionContract",
+    }
     artifact_path = tmp_path / "TransactionContract.json"
     artifact_path.write_text(json.dumps(artifact))
     return artifact_path
@@ -339,9 +343,9 @@ class TestSubmitTransaction:
         """Configure the mock contract to return a TransactionSubmitted event."""
         mock_log = MagicMock()
         mock_log.__getitem__ = lambda self, key: {"txHash": _SAMPLE_TX_HASH}[key]
-        ci.contract.events.TransactionSubmitted.return_value.process_receipt.return_value = [
-            mock_log
-        ]
+        ci.contract.events.TransactionSubmitted.return_value.process_receipt.return_value = (
+            [mock_log]
+        )
 
     def test_returns_contract_tx_hash(
         self, ci: ContractInterface, mock_w3: MagicMock
@@ -367,7 +371,9 @@ class TestSubmitTransaction:
         self, ci: ContractInterface, mock_w3: MagicMock
     ) -> None:
         """RuntimeError is raised when the event log is empty."""
-        ci.contract.events.TransactionSubmitted.return_value.process_receipt.return_value = []
+        ci.contract.events.TransactionSubmitted.return_value.process_receipt.return_value = (
+            []
+        )
         with pytest.raises(RuntimeError, match="TransactionSubmitted event not emitted"):
             ci.submit_transaction(_OWNER, _RECEIVER, 0.5, 0.001)
 
@@ -529,21 +535,33 @@ class TestEvents:
         mock_entry.__getitem__ = lambda self, k: args if k == "args" else None
         event_mock.get_logs.return_value = [mock_entry]
 
-    def test_get_submitted_events_returns_list(self, ci: ContractInterface) -> None:
+    def test_get_submitted_events_returns_list(
+        self, ci: ContractInterface
+    ) -> None:
         """get_submitted_events returns a list of dicts."""
-        args = {"txHash": _SAMPLE_TX_HASH, "sender": _OWNER, "receiver": _RECEIVER}
+        args = {
+            "txHash": _SAMPLE_TX_HASH,
+            "sender": _OWNER,
+            "receiver": _RECEIVER,
+        }
         self._mock_event_logs(ci.contract.events.TransactionSubmitted, args)
         result = ci.get_submitted_events(from_block=0)
         assert isinstance(result, list)
 
     def test_get_approved_events_returns_list(self, ci: ContractInterface) -> None:
         """get_approved_events returns a list of dicts."""
-        args = {"txHash": _SAMPLE_TX_HASH, "sender": _OWNER, "receiver": _RECEIVER}
+        args = {
+            "txHash": _SAMPLE_TX_HASH,
+            "sender": _OWNER,
+            "receiver": _RECEIVER,
+        }
         self._mock_event_logs(ci.contract.events.TransactionApproved, args)
         result = ci.get_approved_events(from_block=0)
         assert isinstance(result, list)
 
-    def test_get_rejected_events_returns_list(self, ci: ContractInterface) -> None:
+    def test_get_rejected_events_returns_list(
+        self, ci: ContractInterface
+    ) -> None:
         """get_rejected_events returns a list of dicts."""
         args = {"txHash": _SAMPLE_TX_HASH, "sender": _OWNER, "reason": "Fraud"}
         self._mock_event_logs(ci.contract.events.TransactionRejected, args)
