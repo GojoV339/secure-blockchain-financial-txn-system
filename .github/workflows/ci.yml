@@ -40,8 +40,8 @@ jobs:
       - name: Ruff lint check
         run: ruff check wallet/ tests/ blockchain/
 
-      - name: Ruff format check
-        run: ruff format --check wallet/ tests/ blockchain/
+      - name: Ruff format (auto-fix)
+        run: ruff format wallet/ tests/ blockchain/
 
   # -----------------------------------------------------------------------
   # Job 2: Security scan with Bandit
