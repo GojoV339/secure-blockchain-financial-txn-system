@@ -24,3 +24,9 @@ htmlcov/
 
 # Virtual environment
 .venv/
+
+# Hardhat / Node
+node_modules/
+artifacts/
+cache/
+deployment.json

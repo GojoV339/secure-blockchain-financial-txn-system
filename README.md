@@ -123,18 +123,80 @@ bandit -r wallet/ -ll
 
 ---
 
-### Phase 3 — Smart Contracts
+### Phase 3 — Smart Contracts ✅
 > Week 1 · Day 4–5 · Covers: CO2, CO4
 
-- Write `TransactionContract.sol` in **Solidity** with the following functions:
-  - `submitTransaction()` — accepts incoming transaction request
-  - `validateBalance()` — checks `sender_balance >= value + txFee`
-  - `approveTransaction()` — marks transaction as valid, moves to mempool
-  - `rejectTransaction()` — flags and logs invalid transaction
-- Add **blockchain events**
-  - `event TransactionSubmitted` and `event TransactionApproved` for real-time frontend updates
-- **Deploy contract** to Ganache using `truffle migrate`
-  - Save the contract address for use in Python backend
+**Status:** Complete · Hardhat · Solidity 0.8.20 · Python web3.py interface
+
+#### Contract Structure
+
+```
+contracts/
+└── TransactionContract.sol   # Balance ledger + full tx lifecycle + events
+scripts/
+└── deploy.js                 # Hardhat deploy → writes deployment.json
+blockchain/
+├── __init__.py               # Package docstring
+└── contract.py               # Python web3.py wrapper (ContractInterface)
+tests/
+└── test_contract.py          # Mocked unit tests (CI-safe, no live network)
+hardhat.config.js             # Ganache (7545) + localhost (8545) networks
+package.json                  # Hardhat + hardhat-ethers + ethers.js
+```
+
+#### Features Implemented
+
+| Feature | Implementation |
+|---|---|
+| Balance ledger | `mapping(address => uint256) public balances` — internal wei ledger |
+| Fund wallet | `fundWallet(address)` payable — sends ETH, credits ledger, emits `WalletFunded` |
+| Submit transaction | `submitTransaction(receiver, value, fee)` — validates balance, reserves funds, returns `bytes32 txHash` |
+| Balance validation | Reverts with `"insufficient balance"` if `value + fee > sender balance` |
+| Approve transaction | Owner-only — credits receiver, emits `TransactionApproved` |
+| Reject transaction | Owner-only — full refund (value + fee), stores reason on-chain, emits `TransactionRejected` |
+| Events | `TransactionSubmitted`, `TransactionApproved`, `TransactionRejected`, `WalletFunded` |
+| Python interface | `ContractInterface` — Pythonic wrapper with `from_deployment_file()` factory |
+
+#### Usage
+
+```bash
+# 1 — Install Node dependencies (first time only)
+npm install
+
+# 2 — Start Ganache GUI or CLI on port 7545, then deploy:
+npx hardhat run scripts/deploy.js --network ganache
+# deployment.json written to project root
+
+# 3 — OR use the built-in Hardhat node (port 8545):
+npx hardhat node                                         # terminal 1
+npx hardhat run scripts/deploy.js --network localhost    # terminal 2
+```
+
+```python
+from web3 import Web3
+from blockchain.contract import ContractInterface
+
+w3 = Web3(Web3.HTTPProvider("http://127.0.0.1:7545"))
+ci = ContractInterface.from_deployment_file(w3)       # reads deployment.json
+
+# Fund sender ledger (1 ETH)
+ci.fund_wallet("0xSENDER...", amount_ether=1.0, sender=w3.eth.accounts[0])
+
+# Submit tx (0.5 ETH + 0.001 fee)
+tx_hash = ci.submit_transaction(
+    sender=w3.eth.accounts[1],
+    receiver=w3.eth.accounts[2],
+    value_ether=0.5,
+    fee_ether=0.001,
+)
+
+# Approve or reject (owner = deployer)
+ci.approve_transaction(tx_hash, owner=w3.eth.accounts[0])
+
+# Query
+record = ci.get_transaction(tx_hash)  # {"status": "Approved", "value_ether": 0.5, ...}
+balance = ci.get_balance(w3.eth.accounts[2])
+```
 
 ---
 
@@ -218,15 +280,15 @@ bandit -r wallet/ -ll
 
 ## Timeline Summary
 
-| Week | Days | Phase |
-|---|---|---|
-| Week 1 | Day 1–2 | Phase 1 — Environment setup |
-| Week 1 | Day 3 | Phase 2 — Wallet identity module |
-| Week 1 | Day 4–5 | Phase 3 — Smart contracts |
-| Week 2 | Day 1–2 | Phase 4 — Block creation and chain |
-| Week 2 | Day 3 | Phase 5 — Consensus mechanism |
-| Week 2 | Day 4–5 | Phase 6 — Flask API and dashboard |
-| Week 3 | Day 1 | Phase 7 — ML risk module |
+| Week | Days | Phase | Status |
+|---|---|---|---|
+| Week 1 | Day 1–2 | Phase 1 — Environment setup | ✅ Complete |
+| Week 1 | Day 3 | Phase 2 — Wallet identity module | ✅ Complete |
+| Week 1 | Day 4–5 | Phase 3 — Smart contracts | ✅ Complete |
+| Week 2 | Day 1–2 | Phase 4 — Block creation and chain | 🔲 Pending |
+| Week 2 | Day 3 | Phase 5 — Consensus mechanism | 🔲 Pending |
+| Week 2 | Day 4–5 | Phase 6 — Flask API and dashboard | 🔲 Pending |
+| Week 3 | Day 1 | Phase 7 — ML risk module | 🔲 Pending |
 
 ---
 

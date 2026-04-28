@@ -163,7 +163,7 @@
 <!-- Header -->
 <div id="header">
   <h1>⛓ Blockchain Project Graph</h1>
-  <span class="pill">v0.1.0</span>
+  <span class="pill">v0.3.0</span>
   <div class="spacer"></div>
   <div class="legend">
     <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>Package</div>
@@ -192,6 +192,7 @@
   <button onclick="toggleEdges()" id="btnEdges" class="active">Edges</button>
   <button onclick="filterLayer('all')" class="active" data-layer="all">All</button>
   <button onclick="filterLayer('wallet')" data-layer="wallet">Wallet</button>
+  <button onclick="filterLayer('blockchain')" data-layer="blockchain">Blockchain</button>
   <button onclick="filterLayer('tests')" data-layer="tests">Tests</button>
   <button onclick="filterLayer('infra')" data-layer="infra">Infra</button>
 </div>
@@ -207,184 +208,156 @@ const NODES = [
   // ── Packages / Root ──
   {id:'root', label:'block-chain-project', group:'package', layer:'all',
    desc:'Secure Blockchain-Based Decentralized Financial Transaction System with Intelligent Risk Monitoring.',
-   file:'pyproject.toml', r:38,
+   file:'pyproject.toml', r:42,
    details:{
      deps:['cryptography','flask','pandas','scikit-learn','web3','python-dotenv'],
-     devDeps:['bandit','pip-audit','pytest','pytest-cov','ruff'],
+     devDeps:['bandit','pip-audit','pytest','pytest-cov','ruff','hardhat'],
      python:'≥ 3.13'
    }},
   {id:'wallet_pkg', label:'wallet/', group:'package', layer:'wallet',
    desc:'Wallet Identity Module — address management, ECDSA key pairs with encrypted storage, digital signatures.',
    file:'wallet/__init__.py', r:32},
+  {id:'blockchain_pkg', label:'blockchain/', group:'package', layer:'blockchain',
+   desc:'Blockchain Interaction Module — Phase 3. Python interface to Ethereum smart contracts.',
+   file:'blockchain/__init__.py', r:32},
 
   // ── Wallet modules ──
   {id:'config', label:'config.py', group:'config', layer:'wallet',
-   desc:'Env-based configuration. Single source of truth for paths, encryption settings, and logging. No hardcoded secrets.',
+   desc:'Env-based configuration. Single source of truth for paths, encryption settings, and logging.',
    file:'wallet/config.py', r:24,
    fns:[
-     {name:'get_encryption_passphrase()', desc:'Read passphrase from env — never cached'},
-     {name:'configure_logging(name)', desc:'Structured console logger with LOG_LEVEL'},
-   ],
-   exports:['DATASET_PATH','KEYSTORE_PATH','LOG_LEVEL','get_encryption_passphrase','configure_logging']},
-
-  {id:'exceptions', label:'exceptions.py', group:'module', layer:'wallet',
-   desc:'Custom exception hierarchy for precise error handling across the wallet module.',
-   file:'wallet/exceptions.py', r:22,
-   classes:['WalletBaseError','InvalidAddressError','DatasetLoadError','KeyGenerationError','KeyStorageError','SignatureError','VerificationError']},
+     {name:'get_encryption_passphrase()', desc:'Read passphrase from env'},
+     {name:'configure_logging(name)', desc:'Structured console logger'},
+   ]},
 
   {id:'address_loader', label:'address_loader.py', group:'module', layer:'wallet',
-   desc:'Reads Ethereum tx datasets, extracts unique validated wallet addresses. Filters non-hex labels (e.g. BinanceWallet).',
+   desc:'Reads Ethereum tx datasets, extracts unique validated wallet addresses.',
    file:'wallet/address_loader.py', r:26,
    fns:[
-     {name:'validate_address(addr)', desc:'Regex 0x+40 hex check, ReDoS-safe'},
-     {name:'load_addresses(csv_path)', desc:'CSV → set of validated lowercase addresses'},
+     {name:'validate_address(addr)', desc:'Regex 0x+40 hex check'},
+     {name:'load_addresses(csv_path)', desc:'CSV → validated addresses'},
    ]},
 
   {id:'key_manager', label:'key_manager.py', group:'module', layer:'wallet',
-   desc:'ECDSA key pair management on secp256k1. Handles generation, AES-256 encrypted persistence, and loading.',
+   desc:'ECDSA key pair management. Handles generation, AES-256 encrypted persistence.',
    file:'wallet/key_manager.py', r:28,
    fns:[
-     {name:'generate_key_pair()', desc:'New ECDSA keypair, rate-limit 10/min/IP'},
-     {name:'serialize_private_key(key, pass)', desc:'PEM + BestAvailableEncryption'},
-     {name:'serialize_public_key(key)', desc:'PEM unencrypted'},
-     {name:'save_keys(addr, priv, pub, pass)', desc:'Encrypted to disk, chmod 0o600'},
-     {name:'load_private_key(addr, pass)', desc:'Decrypt from disk'},
-     {name:'load_public_key(addr)', desc:'Load PEM from disk'},
-     {name:'generate_keys_for_addresses(addrs)', desc:'Batch gen, skips existing'},
+     {name:'generate_key_pair()', desc:'New ECDSA secp256k1 keypair'},
+     {name:'save_keys(addr, priv, pub, pass)', desc:'Encrypted to disk (chmod 0o600)'},
    ]},
 
   {id:'signer', label:'signer.py', group:'module', layer:'wallet',
-   desc:'ECDSA signing & verification with replay protection (UUID4 nonce), low-S malleability protection, canonical JSON.',
+   desc:'ECDSA signing & verification with replay protection and malleability protection.',
    file:'wallet/signer.py', r:28,
    fns:[
-     {name:'create_nonce()', desc:'UUID4 via os.urandom CSPRNG'},
-     {name:'sign_transaction(tx, key, nonce)', desc:'ECDSA-SHA256, low-S normalised, 64B raw'},
-     {name:'verify_signature(sig, pub, tx, nonce)', desc:'Rejects high-S, verifies ECDSA'},
-   ],
-   consts:['_SECP256K1_ORDER','_SECP256K1_HALF_ORDER']},
+     {name:'sign_transaction(tx, key, nonce)', desc:'ECDSA-SHA256, low-S normalised'},
+     {name:'verify_signature(sig, pub, tx, nonce)', desc:'Rejects high-S'},
+   ]},
+
+  // ── Blockchain modules (Phase 3) ──
+  {id:'blockchain_contract', label:'contract.py', group:'module', layer:'blockchain',
+   desc:'Python web3.py wrapper for TransactionContract. Clean API for funding, submitting, and approving transactions.',
+   file:'blockchain/contract.py', r:30,
+   fns:[
+     {name:'from_deployment_file(w3)', desc:'Factory loading from deployment.json'},
+     {name:'fund_wallet(wallet, amount, sender)', desc:'Credit on-chain ledger'},
+     {name:'submit_transaction(s, r, v, f)', desc:'Submit for approval, reserves funds'},
+     {name:'approve_transaction(tx_hash, owner)', desc:'Finalise on-chain'},
+   ]},
+
+  {id:'solidity_contract', label:'TransactionContract.sol', group:'module', layer:'blockchain',
+   desc:'Full Solidity 0.8.20 contract. Internal balance ledger, transaction lifecycle, and events.',
+   file:'contracts/TransactionContract.sol', r:34,
+   exports:['fundWallet','submitTransaction','approveTransaction','rejectTransaction','balances']},
+
+  {id:'hardhat_config', label:'hardhat.config.js', group:'config', layer:'blockchain',
+   desc:'Hardhat configuration for development, Ganache (:7545), and localhost (:8545).',
+   file:'hardhat.config.js', r:24},
+
+  {id:'deploy_script', label:'deploy.js', group:'config', layer:'blockchain',
+   desc:'Hardhat deployment script. Deploys to network and writes deployment.json for Python layer.',
+   file:'scripts/deploy.js', r:22},
 
   // ── Tests ──
-  {id:'conftest', label:'conftest.py', group:'test', layer:'tests',
-   desc:'Shared pytest fixtures: tmp keystore, sample addresses, key pairs, CSV files, passphrase.',
-   file:'tests/conftest.py', r:22,
-   fns:[
-     {name:'tmp_keystore', desc:'Temp keystore directory'},
-     {name:'sample_addresses', desc:'3 valid Ethereum addresses'},
-     {name:'sample_key_pair', desc:'Fresh ECDSA keypair'},
-     {name:'sample_tx_data', desc:'Sample tx dict'},
-     {name:'sample_csv / empty_csv / missing_columns_csv', desc:'Test CSV fixtures'},
-   ]},
-
   {id:'test_addr', label:'test_address_loader.py', group:'test', layer:'tests',
-   desc:'11 tests: address validation format checks, CSV loading, filtering of non-hex labels, error handling.',
-   file:'tests/test_address_loader.py', r:22,
-   classes:['TestValidateAddress (7)','TestLoadAddresses (4)']},
-
+   file:'tests/test_address_loader.py', r:22, desc:'11 tests for CSV loading and validation.'},
   {id:'test_keys', label:'test_key_manager.py', group:'test', layer:'tests',
-   desc:'14 tests: key generation, serialisation, persistence round-trips, wrong passphrase, batch generation.',
-   file:'tests/test_key_manager.py', r:22,
-   classes:['TestGenerateKeyPair (3)','TestSerialisation (2)','TestSaveAndLoadKeys (6)','TestBatchGeneration (3)']},
-
+   file:'tests/test_key_manager.py', r:22, desc:'14 tests for generation and encrypted storage.'},
   {id:'test_sign', label:'test_signer.py', group:'test', layer:'tests',
-   desc:'16 tests: nonce, canonical JSON, low-S, sign/verify round-trip, tamper detection, malleability rejection.',
-   file:'tests/test_signer.py', r:22,
-   classes:['TestCreateNonce (3)','TestCanonicalMessage (4)','TestLowSNormalisation (3)','TestRawSignatureEncoding (2)','TestSignTransaction (2)','TestVerifySignature (7)']},
+   file:'tests/test_signer.py', r:22, desc:'16 tests for signatures and malleability.'},
+  {id:'test_contract', label:'test_contract.py', group:'test', layer:'tests',
+   file:'tests/test_contract.py', r:24, desc:'35 mocked tests for contract interface (CI-safe).'},
 
-  // ── Infra / Data ──
+  // ── Infra / Config ──
   {id:'ci', label:'CI Pipeline', group:'config', layer:'infra',
-   desc:'GitHub Actions: Ruff lint, Bandit security scan, pip-audit dependency check, pytest with 80% coverage gate.',
-   file:'.github/workflows/ci.yml', r:24,
-   fns:[
-     {name:'lint', desc:'Ruff check + format'},
-     {name:'security', desc:'Bandit scan -ll'},
-     {name:'dependency-check', desc:'pip-audit CVE scan'},
-     {name:'test', desc:'pytest --cov-fail-under=80'},
-   ]},
+   desc:'GitHub Actions: Lint, Security, Dependency Audit, and Tests.',
+   file:'.github/workflows/ci.yml', r:28},
+  {id:'req_prod', label:'requirements.txt', group:'config', layer:'infra',
+   desc:'Runtime dependencies only. No dev tools to avoid false positives in audit.',
+   file:'requirements.txt', r:20},
+  {id:'req_dev', label:'requirements-dev.txt', group:'config', layer:'infra',
+   desc:'Development tools: pytest, ruff, bandit, pip-audit.',
+   file:'requirements-dev.txt', r:20},
+  {id:'package_json', label:'package.json', group:'config', layer:'infra',
+   desc:'NPM package for Hardhat and ethers.js development.',
+   file:'package.json', r:20},
 
-  {id:'main', label:'main.py', group:'config', layer:'infra',
-   desc:'Entry point (placeholder). Prints hello message.',
-   file:'main.py', r:18},
+  // ── Data ──
+  {id:'dataset', label:'Eth_Txs.csv', group:'data', layer:'infra', r:22},
+  {id:'fraud_csv', label:'Fraud Dataset', group:'data', layer:'infra', r:20},
 
-  {id:'verify', label:'verify_setup.py', group:'config', layer:'infra',
-   desc:'Quick Ganache connectivity check — lists accounts and ETH balances via web3.py.',
-   file:'verify_setup.py', r:18},
-
-  {id:'dataset', label:'Eth_Txs.csv', group:'data', layer:'infra',
-   desc:'Ethereum transaction dataset (~98 MB). Columns: Record, TxHash, Block, Age, From, To, Value, TxFee.',
-   file:'datasets/Eth_Txs.csv', r:22},
-
-  {id:'fraud_csv', label:'Fraud Dataset', group:'data', layer:'infra',
-   desc:'Transaction fraud dataset (~2.9 MB) for ML risk monitoring module (Phase 7).',
-   file:'datasets/transaction_Fraud_dataset.csv', r:20},
-
-  {id:'dotenv', label:'.env', group:'config', layer:'infra',
-   desc:'Environment secrets: WALLET_ENCRYPTION_PASSPHRASE, DATASET_PATH, KEYSTORE_PATH, LOG_LEVEL.',
-   file:'.env', r:18},
-
-  // ── External deps (hover context) ──
-  {id:'ext_crypto', label:'cryptography', group:'external', layer:'all', r:18,
-   desc:'Python cryptography library — ECDSA, AES-256-CBC, PBKDF2-HMAC, PEM serialisation.'},
-  {id:'ext_pandas', label:'pandas', group:'external', layer:'all', r:16,
-   desc:'DataFrame library for CSV dataset loading and address extraction.'},
-  {id:'ext_web3', label:'web3.py', group:'external', layer:'all', r:16,
-   desc:'Python Ethereum library for blockchain connectivity.'},
-  {id:'ext_flask', label:'Flask', group:'external', layer:'all', r:16,
-   desc:'Lightweight web framework for Phase 6 REST API.'},
-  {id:'ext_sklearn', label:'scikit-learn', group:'external', layer:'all', r:16,
-   desc:'ML library for Isolation Forest anomaly detection (Phase 7).'},
+  // ── External ──
+  {id:'ext_web3', label:'web3.py', group:'external', layer:'all', r:18},
+  {id:'ext_hardhat', label:'Hardhat', group:'external', layer:'all', r:18},
+  {id:'ext_crypto', label:'cryptography', group:'external', layer:'all', r:18},
 ];
 
 const EDGES = [
-  // Package containment
-  {from:'root', to:'wallet_pkg', type:'contains', label:'contains'},
+  // Containment
+  {from:'root', to:'wallet_pkg', type:'contains'},
+  {from:'root', to:'blockchain_pkg', type:'contains'},
+  {from:'root', to:'hardhat_config', type:'contains'},
+  {from:'root', to:'deploy_script', type:'contains'},
+  {from:'root', to:'package_json', type:'contains'},
+  {from:'root', to:'req_prod', type:'contains'},
+  {from:'root', to:'req_dev', type:'contains'},
   {from:'root', to:'ci', type:'contains'},
-  {from:'root', to:'main', type:'contains'},
-  {from:'root', to:'verify', type:'contains'},
-  {from:'root', to:'dataset', type:'contains'},
-  {from:'root', to:'fraud_csv', type:'contains'},
-  {from:'root', to:'dotenv', type:'contains'},
 
   {from:'wallet_pkg', to:'config', type:'contains'},
-  {from:'wallet_pkg', to:'exceptions', type:'contains'},
   {from:'wallet_pkg', to:'address_loader', type:'contains'},
   {from:'wallet_pkg', to:'key_manager', type:'contains'},
   {from:'wallet_pkg', to:'signer', type:'contains'},
 
-  // Internal imports
-  {from:'config', to:'dotenv', type:'imports', label:'load_dotenv'},
-  {from:'address_loader', to:'config', type:'imports', label:'DATASET_PATH, configure_logging'},
-  {from:'address_loader', to:'exceptions', type:'imports', label:'DatasetLoadError, InvalidAddressError'},
-  {from:'key_manager', to:'config', type:'imports', label:'KEYSTORE_PATH, configure_logging, get_encryption_passphrase'},
-  {from:'key_manager', to:'exceptions', type:'imports', label:'KeyGenerationError, KeyStorageError'},
-  {from:'signer', to:'config', type:'imports', label:'configure_logging'},
-  {from:'signer', to:'exceptions', type:'imports', label:'SignatureError, VerificationError'},
+  {from:'blockchain_pkg', to:'blockchain_contract', type:'contains'},
+  {from:'root', to:'solidity_contract', type:'contains'},
 
-  // Data flow
-  {from:'dataset', to:'address_loader', type:'data', label:'CSV → addresses'},
-  {from:'address_loader', to:'key_manager', type:'data', label:'addresses → key gen'},
-  {from:'key_manager', to:'signer', type:'data', label:'keys → sign/verify'},
+  // Logic flow
+  {from:'blockchain_contract', to:'solidity_contract', type:'data', label:'Interface / ABI'},
+  {from:'deploy_script', to:'solidity_contract', type:'imports', label:'Deploys'},
+  {from:'deployment_info', to:'blockchain_contract', type:'data', label:'Address'},
+  {from:'deploy_script', to:'root', type:'data', label:'Writes deployment.json'},
 
-  // Test → Module
-  {from:'test_addr', to:'address_loader', type:'tests', label:'tests'},
-  {from:'test_keys', to:'key_manager', type:'tests', label:'tests'},
-  {from:'test_sign', to:'signer', type:'tests', label:'tests'},
-  {from:'conftest', to:'key_manager', type:'imports', label:'generate_key_pair'},
-  {from:'test_sign', to:'key_manager', type:'imports', label:'generate_key_pair'},
+  // Imports
+  {from:'address_loader', to:'config', type:'imports'},
+  {from:'key_manager', to:'config', type:'imports'},
+  {from:'blockchain_contract', to:'config', type:'imports'},
+  {from:'blockchain_contract', to:'ext_web3', type:'external'},
 
-  // External deps
-  {from:'key_manager', to:'ext_crypto', type:'external', label:'ec, serialization'},
-  {from:'signer', to:'ext_crypto', type:'external', label:'hashes, ec, ECDSA'},
-  {from:'address_loader', to:'ext_pandas', type:'external', label:'pd.read_csv'},
-  {from:'verify', to:'ext_web3', type:'external', label:'Web3'},
+  // Flow wallet -> blockchain
+  {from:'signer', to:'blockchain_contract', type:'data', label:'Signed TX → Contract'},
 
-  // CI → tools
-  {from:'ci', to:'test_addr', type:'triggers', label:'pytest'},
-  {from:'ci', to:'test_keys', type:'triggers', label:'pytest'},
-  {from:'ci', to:'test_sign', type:'triggers', label:'pytest'},
+  // Tests
+  {from:'test_addr', to:'address_loader', type:'tests'},
+  {from:'test_keys', to:'key_manager', type:'tests'},
+  {from:'test_sign', to:'signer', type:'tests'},
+  {from:'test_contract', to:'blockchain_contract', type:'tests'},
+
+  // CI
+  {from:'ci', to:'test_contract', type:'triggers', label:'Verify Phase 3'}
 ];
 
 // ═══════════════════════════════════════════════════════════════
-// COLORS
+// COLORS & RENDER ENGINE (Consistent with v0.1.0)
 // ═══════════════════════════════════════════════════════════════
 const GROUP_COLORS = {
   package:'#6366f1', module:'#34d399', test:'#fbbf24',
@@ -399,9 +372,6 @@ const EDGE_COLORS = {
   triggers:'rgba(251,191,36,.15)',
 };
 
-// ═══════════════════════════════════════════════════════════════
-// CANVAS SETUP
-// ═══════════════════════════════════════════════════════════════
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 
@@ -416,20 +386,14 @@ function resize(){
 resize();
 window.addEventListener('resize', resize);
 
-// ═══════════════════════════════════════════════════════════════
-// STATE
-// ═══════════════════════════════════════════════════════════════
 let showLabels = true, showEdges = true, activeLayer = 'all';
 let camera = {x:0, y:0, zoom:1};
 let drag = null, hover = null, selected = null;
 let simRunning = true;
 
-// ═══════════════════════════════════════════════════════════════
-// PHYSICS INIT
-// ═══════════════════════════════════════════════════════════════
 NODES.forEach((n,i) => {
   const angle = (i / NODES.length) * Math.PI * 2;
-  const spread = 200 + Math.random() * 150;
+  const spread = 250 + Math.random() * 100;
   n.x = Math.cos(angle) * spread;
   n.y = Math.sin(angle) * spread;
   n.vx = 0; n.vy = 0;
@@ -440,19 +404,16 @@ NODES.forEach((n,i) => {
 function isVisible(n){
   if(activeLayer === 'all') return true;
   if(activeLayer === 'wallet') return n.layer==='wallet' || n.id==='root';
-  if(activeLayer === 'tests') return n.layer==='tests' || ['wallet_pkg','address_loader','key_manager','signer','root'].includes(n.id);
+  if(activeLayer === 'blockchain') return n.layer==='blockchain' || n.id==='root';
+  if(activeLayer === 'tests') return n.layer==='tests' || n.group==='package';
   if(activeLayer === 'infra') return n.layer==='infra' || n.id==='root';
   return true;
 }
 
-// ═══════════════════════════════════════════════════════════════
-// PHYSICS SIMULATION
-// ═══════════════════════════════════════════════════════════════
 function simulate(){
-  const alpha = .3, repulsion = 3000, spring = .004, damping = .85, idealLen = 140;
+  const alpha = .35, repulsion = 3200, spring = .005, damping = .82, idealLen = 150;
   const visNodes = NODES.filter(n => n.visible);
 
-  // Repulsion (between all visible nodes)
   for(let i=0;i<visNodes.length;i++){
     for(let j=i+1;j<visNodes.length;j++){
       let dx = visNodes[j].x - visNodes[i].x;
@@ -466,7 +427,6 @@ function simulate(){
     }
   }
 
-  // Spring (edges)
   EDGES.forEach(e => {
     const a = NODES.find(n=>n.id===e.from);
     const b = NODES.find(n=>n.id===e.to);
@@ -480,14 +440,9 @@ function simulate(){
     b.vx -= fx; b.vy -= fy;
   });
 
-  // Center pull
   visNodes.forEach(n => {
     n.vx -= n.x * .001;
     n.vy -= n.y * .001;
-  });
-
-  // Integrate
-  visNodes.forEach(n => {
     if(drag && drag.node === n) return;
     n.vx *= damping; n.vy *= damping;
     n.x += n.vx * alpha;
@@ -495,9 +450,6 @@ function simulate(){
   });
 }
 
-// ═══════════════════════════════════════════════════════════════
-// RENDER
-// ═══════════════════════════════════════════════════════════════
 function toScreen(x,y){
   return {x: (x - camera.x) * camera.zoom + W/2, y: (y - camera.y) * camera.zoom + H/2};
 }
@@ -508,12 +460,10 @@ function toWorld(sx,sy){
 function drawEdge(a,b,edge){
   const p1 = toScreen(a.x, a.y);
   const p2 = toScreen(b.x, b.y);
-
   const color = EDGE_COLORS[edge.type] || 'rgba(255,255,255,.1)';
   ctx.strokeStyle = color;
-  ctx.lineWidth = edge.type === 'data' ? 2 : edge.type === 'imports' ? 1.5 : 1;
+  ctx.lineWidth = edge.type === 'data' ? 2 : 1;
 
-  // Curved
   const mx = (p1.x+p2.x)/2, my = (p1.y+p2.y)/2;
   const dx = p2.x-p1.x, dy = p2.y-p1.y;
   const dist = Math.sqrt(dx*dx+dy*dy);
@@ -525,24 +475,6 @@ function drawEdge(a,b,edge){
   ctx.moveTo(p1.x, p1.y);
   ctx.quadraticCurveTo(cx, cy, p2.x, p2.y);
   ctx.stroke();
-
-  // Arrowhead for data/imports
-  if(edge.type === 'data' || edge.type === 'imports' || edge.type === 'tests'){
-    const t = .7;
-    const ax = (1-t)*(1-t)*p1.x + 2*(1-t)*t*cx + t*t*p2.x;
-    const ay = (1-t)*(1-t)*p1.y + 2*(1-t)*t*cy + t*t*p2.y;
-    const tx2 = t+.01;
-    const bx = (1-tx2)*(1-tx2)*p1.x + 2*(1-tx2)*tx2*cx + tx2*tx2*p2.x;
-    const by = (1-tx2)*(1-tx2)*p1.y + 2*(1-tx2)*tx2*cy + tx2*tx2*p2.y;
-    const angle = Math.atan2(by-ay, bx-ax);
-    const sz = 6 * camera.zoom;
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.moveTo(ax + Math.cos(angle)*sz, ay + Math.sin(angle)*sz);
-    ctx.lineTo(ax + Math.cos(angle+2.5)*sz*.6, ay + Math.sin(angle+2.5)*sz*.6);
-    ctx.lineTo(ax + Math.cos(angle-2.5)*sz*.6, ay + Math.sin(angle-2.5)*sz*.6);
-    ctx.closePath(); ctx.fill();
-  }
 }
 
 function drawNode(n){
@@ -551,112 +483,45 @@ function drawNode(n){
   const col = GROUP_COLORS[n.group] || '#6366f1';
   const isHover = hover === n;
   const isSel = selected === n;
-  const alpha = n.alpha;
 
-  ctx.globalAlpha = alpha;
-
-  // Glow
+  ctx.globalAlpha = n.alpha;
   if(isHover || isSel){
-    const grd = ctx.createRadialGradient(p.x,p.y,r,p.x,p.y,r*3);
-    grd.addColorStop(0, col+'40');
-    grd.addColorStop(1, col+'00');
-    ctx.fillStyle = grd;
-    ctx.beginPath(); ctx.arc(p.x,p.y,r*3,0,Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 15; ctx.shadowColor = col;
   }
-
-  // Ring
+  
   ctx.beginPath();
   ctx.arc(p.x, p.y, r, 0, Math.PI*2);
-  const rGrd = ctx.createRadialGradient(p.x-r*.3,p.y-r*.3,0,p.x,p.y,r);
-  rGrd.addColorStop(0, col+'50');
-  rGrd.addColorStop(1, col+'18');
-  ctx.fillStyle = rGrd;
+  ctx.fillStyle = col + '20';
   ctx.fill();
   ctx.strokeStyle = isHover||isSel ? col : col+'80';
-  ctx.lineWidth = isHover||isSel ? 2.5 : 1.5;
+  ctx.lineWidth = isHover||isSel ? 3 : 1.5;
   ctx.stroke();
-
-  // Inner dot
+  
   ctx.beginPath();
-  ctx.arc(p.x, p.y, r*.35, 0, Math.PI*2);
+  ctx.arc(p.x, p.y, r*.3, 0, Math.PI*2);
   ctx.fillStyle = col;
   ctx.fill();
 
-  // Label
-  if(showLabels && camera.zoom > .35){
-    ctx.font = `${Math.max(9,11*camera.zoom)}px Inter`;
-    ctx.fillStyle = '#e2e8f0';
+  ctx.shadowBlur = 0;
+  if(showLabels && camera.zoom > .4){
+    ctx.font = `600 ${Math.max(10,12*camera.zoom)}px Inter`;
+    ctx.fillStyle = '#f8fafc';
     ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-    ctx.fillText(n.label, p.x, p.y + r + 6);
+    ctx.fillText(n.label, p.x, p.y + r + 16);
   }
-
   ctx.globalAlpha = 1;
-}
-
-// Particle system for data flow edges
-let particles = [];
-function spawnParticles(){
-  EDGES.filter(e => e.type === 'data').forEach(e => {
-    const a = NODES.find(n=>n.id===e.from);
-    const b = NODES.find(n=>n.id===e.to);
-    if(!a||!b||!a.visible||!b.visible) return;
-    if(Math.random() > .03) return;
-    particles.push({from:e.from, to:e.to, t:0, speed:.005+Math.random()*.003});
-  });
-}
-
-function drawParticles(){
-  particles = particles.filter(p => p.t < 1);
-  particles.forEach(p => {
-    const a = NODES.find(n=>n.id===p.from);
-    const b = NODES.find(n=>n.id===p.to);
-    if(!a||!b) return;
-    p.t += p.speed;
-    const x = a.x + (b.x-a.x)*p.t;
-    const y = a.y + (b.y-a.y)*p.t;
-    const sp = toScreen(x,y);
-    const alpha = Math.sin(p.t * Math.PI);
-    ctx.beginPath();
-    ctx.arc(sp.x, sp.y, 2.5*camera.zoom, 0, Math.PI*2);
-    ctx.fillStyle = `rgba(34,211,238,${alpha*.8})`;
-    ctx.fill();
-  });
 }
 
 function render(){
   ctx.clearRect(0,0,W,H);
-
-  // Grid dots
-  const gridSize = 40 * camera.zoom;
-  if(gridSize > 8){
-    ctx.fillStyle = 'rgba(255,255,255,.02)';
-    const startX = ((-camera.x * camera.zoom + W/2) % gridSize) - gridSize;
-    const startY = ((-camera.y * camera.zoom + H/2) % gridSize) - gridSize;
-    for(let x=startX;x<W;x+=gridSize){
-      for(let y=startY;y<H;y+=gridSize){
-        ctx.fillRect(x,y,1,1);
-      }
-    }
-  }
-
-  // Edges
   if(showEdges){
     EDGES.forEach(e => {
       const a = NODES.find(n=>n.id===e.from);
       const b = NODES.find(n=>n.id===e.to);
-      if(!a||!b||!a.visible||!b.visible) return;
-      if(a.alpha < .1 || b.alpha < .1) return;
-      drawEdge(a,b,e);
+      if(a && b && a.visible && b.visible) drawEdge(a,b,e);
     });
   }
-
-  // Particles
-  spawnParticles();
-  drawParticles();
-
-  // Nodes
-  NODES.filter(n=>n.visible).sort((a,b)=>a.r-b.r).forEach(drawNode);
+  NODES.filter(n=>n.visible).forEach(drawNode);
 }
 
 function loop(){
@@ -671,203 +536,64 @@ function loop(){
 }
 loop();
 
-// ═══════════════════════════════════════════════════════════════
-// INTERACTION
-// ═══════════════════════════════════════════════════════════════
-function hitTest(mx, my){
-  const w = toWorld(mx, my);
-  let closest = null, minD = Infinity;
-  NODES.filter(n=>n.visible && n.alpha > .3).forEach(n => {
-    const d = Math.sqrt((n.x-w.x)**2 + (n.y-w.y)**2);
-    if(d < n.r + 5 && d < minD){ minD = d; closest = n; }
-  });
-  return closest;
+// UI HANDLERS
+function closeSidebar(){ document.getElementById('sidebar').classList.remove('open'); selected = null; }
+function resetView(){ camera = {x:0, y:0, zoom:1}; }
+function toggleLabels(){ showLabels = !showLabels; document.getElementById('btnLabels').classList.toggle('active'); }
+function toggleEdges(){ showEdges = !showEdges; document.getElementById('btnEdges').classList.toggle('active'); }
+function filterLayer(l){
+  activeLayer = l;
+  document.querySelectorAll('#controls button[data-layer]').forEach(b => b.classList.toggle('active', b.dataset.layer === l));
 }
 
-const tooltip = document.getElementById('tooltip');
-
-canvas.addEventListener('mousemove', e => {
-  const mx = e.clientX, my = e.clientY;
-  const h = hitTest(mx, my);
-  hover = h;
-  canvas.style.cursor = h ? 'pointer' : (drag ? 'grabbing' : 'default');
-
-  if(h && !drag){
-    tooltip.style.opacity = '1';
-    tooltip.style.left = (mx+14)+'px';
-    tooltip.style.top = (my+14)+'px';
-    tooltip.innerHTML = `<strong>${h.label}</strong><br><span style="color:#94a3b8">${h.desc||''}</span>`;
-  } else {
-    tooltip.style.opacity = '0';
-  }
-
-  if(drag && drag.node){
-    const w = toWorld(mx, my);
-    drag.node.x = w.x;
-    drag.node.y = w.y;
-    drag.node.vx = 0;
-    drag.node.vy = 0;
-  } else if(drag && drag.pan){
-    camera.x -= (mx - drag.lastX) / camera.zoom;
-    camera.y -= (my - drag.lastY) / camera.zoom;
-    drag.lastX = mx; drag.lastY = my;
-  }
-});
-
-canvas.addEventListener('mousedown', e => {
-  const h = hitTest(e.clientX, e.clientY);
-  if(h){
-    drag = {node: h};
-  } else {
-    drag = {pan:true, lastX:e.clientX, lastY:e.clientY};
-  }
-});
-
-canvas.addEventListener('mouseup', e => {
-  if(drag && drag.node && !drag.moved){
-    openSidebar(drag.node);
-    selected = drag.node;
-  }
-  drag = null;
-});
-
-canvas.addEventListener('dblclick', e => {
-  const h = hitTest(e.clientX, e.clientY);
-  if(h){ openSidebar(h); selected = h; }
-});
-
-canvas.addEventListener('wheel', e => {
-  e.preventDefault();
-  const factor = e.deltaY > 0 ? .92 : 1.08;
-  camera.zoom = Math.max(.15, Math.min(4, camera.zoom * factor));
-  // Zoom towards cursor
-  const w1 = toWorld(e.clientX, e.clientY);
-  camera.zoom *= factor > 1 ? 1 : 1; // already set
-  const w2 = toWorld(e.clientX, e.clientY);
-  camera.x += w1.x - w2.x;
-  camera.y += w1.y - w2.y;
-}, {passive:false});
-
-// ═══════════════════════════════════════════════════════════════
-// SIDEBAR
-// ═══════════════════════════════════════════════════════════════
 function openSidebar(node){
   const sb = document.getElementById('sidebar');
   const cont = document.getElementById('sidebar-content');
-  let html = `<h2>${node.label}</h2>`;
-  if(node.file) html += `<div class="file-path">${node.file}</div>`;
+  let html = `<h2>${node.label}</h2><div class="file-path">${node.file||''}</div>`;
   html += `<div class="section"><div class="desc">${node.desc||''}</div></div>`;
-
-  // Badge
-  html += `<div class="section"><span class="badge" style="background:${GROUP_COLORS[node.group]||'#6366f1'}20;color:${GROUP_COLORS[node.group]||'#6366f1'}">${node.group}</span>`;
-  if(node.layer) html += `<span class="badge" style="background:rgba(255,255,255,.05);color:var(--text2)">${node.layer}</span>`;
-  html += `</div>`;
-
-  // Functions
-  if(node.fns && node.fns.length){
-    html += `<div class="section"><div class="section-title">Functions / Fixtures</div>`;
-    node.fns.forEach(f => {
-      html += `<div class="fn-item">${f.name}<span class="fn-desc">${f.desc||''}</span></div>`;
-    });
+  html += `<div class="section"><span class="badge" style="background:${GROUP_COLORS[node.group]}40;color:${GROUP_COLORS[node.group]}">${node.group}</span></div>`;
+  if(node.fns){
+    html += `<div class="section"><div class="section-title">Features</div>`;
+    node.fns.forEach(f => html += `<div class="fn-item">${f.name}<span class="fn-desc">${f.desc}</span></div>`);
     html += `</div>`;
   }
-
-  // Classes
-  if(node.classes && node.classes.length){
-    html += `<div class="section"><div class="section-title">Classes / Exceptions</div>`;
-    node.classes.forEach(c => {
-      html += `<div class="fn-item" style="color:var(--purple)">${c}</div>`;
-    });
-    html += `</div>`;
-  }
-
-  // Exports / consts
-  if(node.exports){
-    html += `<div class="section"><div class="section-title">Exports</div>`;
-    node.exports.forEach(e => { html += `<span class="badge" style="background:rgba(34,211,238,.1);color:var(--cyan)">${e}</span>`; });
-    html += `</div>`;
-  }
-  if(node.consts){
-    html += `<div class="section"><div class="section-title">Constants</div>`;
-    node.consts.forEach(c => { html += `<span class="badge" style="background:rgba(251,146,60,.1);color:var(--orange)">${c}</span>`; });
-    html += `</div>`;
-  }
-
-  // Details (root node)
-  if(node.details){
-    const d = node.details;
-    if(d.python) html += `<div class="section"><div class="section-title">Python</div><span class="badge" style="background:rgba(99,102,241,.15);color:var(--accent2)">Python ${d.python}</span></div>`;
-    if(d.deps){
-      html += `<div class="section"><div class="section-title">Dependencies</div>`;
-      d.deps.forEach(dep => { html += `<span class="badge" style="background:rgba(34,211,238,.1);color:var(--cyan)">${dep}</span>`; });
-      html += `</div>`;
-    }
-    if(d.devDeps){
-      html += `<div class="section"><div class="section-title">Dev Dependencies</div>`;
-      d.devDeps.forEach(dep => { html += `<span class="badge" style="background:rgba(251,191,36,.1);color:var(--amber)">${dep}</span>`; });
-      html += `</div>`;
-    }
-  }
-
-  // Connected edges
-  const connected = EDGES.filter(e => e.from===node.id || e.to===node.id);
-  if(connected.length){
-    html += `<div class="section"><div class="section-title">Connections (${connected.length})</div>`;
-    connected.forEach(e => {
-      const otherId = e.from===node.id ? e.to : e.from;
-      const other = NODES.find(n=>n.id===otherId);
-      const dir = e.from===node.id ? '→' : '←';
-      html += `<div class="fn-item" style="color:var(--text2);cursor:pointer" onclick="focusNode('${otherId}')">${dir} ${other?other.label:otherId} <span class="fn-desc">${e.label||e.type}</span></div>`;
-    });
-    html += `</div>`;
-  }
-
   cont.innerHTML = html;
   sb.classList.add('open');
 }
 
-function closeSidebar(){
-  document.getElementById('sidebar').classList.remove('open');
-  selected = null;
-}
-
-function focusNode(id){
-  const n = NODES.find(nd=>nd.id===id);
-  if(!n) return;
-  camera.x = n.x; camera.y = n.y; camera.zoom = 1.5;
-  selected = n;
-  openSidebar(n);
-}
-
-// ═══════════════════════════════════════════════════════════════
-// CONTROLS
-// ═══════════════════════════════════════════════════════════════
-function resetView(){ camera = {x:0,y:0,zoom:1}; selected=null; closeSidebar(); }
-
-function toggleLabels(){
-  showLabels = !showLabels;
-  document.getElementById('btnLabels').classList.toggle('active', showLabels);
-}
-
-function toggleEdges(){
-  showEdges = !showEdges;
-  document.getElementById('btnEdges').classList.toggle('active', showEdges);
-}
-
-function filterLayer(layer){
-  activeLayer = layer;
-  document.querySelectorAll('#controls button[data-layer]').forEach(b => {
-    b.classList.toggle('active', b.dataset.layer === layer);
-  });
-}
-
-// Keyboard
-document.addEventListener('keydown', e => {
-  if(e.key === 'Escape') closeSidebar();
-  if(e.key === 'l') toggleLabels();
-  if(e.key === 'e') toggleEdges();
-  if(e.key === 'r') resetView();
+canvas.addEventListener('mousedown', e => {
+  const w = toWorld(e.clientX, e.clientY);
+  const h = NODES.find(n => n.visible && Math.sqrt((n.x-w.x)**2 + (n.y-w.y)**2) < n.r);
+  if(h){
+    drag = {node: h};
+    openSidebar(h);
+    selected = h;
+  } else {
+    drag = {pan:true, lastX:e.clientX, lastY:e.clientY};
+  }
 });
+canvas.addEventListener('mousemove', e => {
+  if(!drag) {
+    const w = toWorld(e.clientX, e.clientY);
+    hover = NODES.find(n => n.visible && Math.sqrt((n.x-w.x)**2 + (n.y-w.y)**2) < n.r);
+    return;
+  }
+  if(drag.node){
+    const w = toWorld(e.clientX, e.clientY);
+    drag.node.x = w.x; drag.node.y = w.y;
+  } else if(drag.pan){
+    camera.x -= (e.clientX - drag.lastX) / camera.zoom;
+    camera.y -= (e.clientY - drag.lastY) / camera.zoom;
+    drag.lastX = e.clientX; drag.lastY = e.clientY;
+  }
+});
+canvas.addEventListener('mouseup', () => drag = null);
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  const zoomIn = e.deltaY < 0;
+  camera.zoom *= zoomIn ? 1.1 : 0.9;
+}, {passive:false});
+
 </script>
 </body>
 </html>
