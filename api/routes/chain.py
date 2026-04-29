@@ -68,7 +68,7 @@ def mine():
         201 with the mined block dict on success.
         500 if mining fails.
     """
-    data = request.get_json(force=True) or {}
+    data = request.get_json(force=True, silent=True) or {}
     miner_address = str(data.get("miner_address", _DEFAULT_MINER))
 
     node = get_node()

@@ -59,7 +59,7 @@ def tamper_block(index: int):
             400,
         )
 
-    data = request.get_json(force=True) or {}
+    data = request.get_json(force=True, silent=True) or {}
     tamper_value = str(data.get("tamper_value", "TAMPERED_DATA"))
 
     block = bc.chain[index]
