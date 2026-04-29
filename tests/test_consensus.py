@@ -1,8 +1,7 @@
 """Tests for chain.consensus — PoW mining and difficulty adjustment."""
 
-from chain.block import Block, GENESIS_PREV_HASH
+from chain.block import Block
 from chain.consensus import (
-    DEFAULT_DIFFICULTY,
     DIFFICULTY_ADJUSTMENT_INTERVAL,
     TARGET_BLOCK_TIME_SECONDS,
     adjust_difficulty,
